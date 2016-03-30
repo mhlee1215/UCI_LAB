@@ -52,6 +52,9 @@ fprintf(' Data loading...\n');
 %V = arrayfun(@(j) dlmread(sprintf('./syntheticData/view%d.txt',j),' ')',idx,'uniformoutput',false);
 % V = arrayfun(@(j) dlmread(sprintf('libs/JRMPC_v0.9.4/syntheticData/cutView%d.txt',j),' ')',idx,'uniformoutput',false);
 
+
+NN_Number = 5;
+
 % sampleNum = 5000;
 fv = {};
 V2 = {};
@@ -176,9 +179,17 @@ pclviewer([v_m1 c_m1 ; v_m2 c_m2]');
 pclviewer([v_m1 c_m1]');
 pclviewer([v_m2 c_m2]');
 
+
 %% Do part registration
+%For key 1
 key1 = SIFTKeypoint(v_m1_s, c_m1_s, '');
+%Remove duplicated key
+key1 = unique(key1', 'rows')';
+
+%For key 2
 key2 = SIFTKeypoint(v_m2_best11, c_m2_s, '');
+%Remove duplicated key
+key2 = unique(key2', 'rows')';
 f_1_key = FPFHSDescriptor(v_m1_s, c_m1_s, key1, params_desc.normalRadius, params_desc.searchRadius, params_desc.searchK);
 f_2_key = FPFHSDescriptor(v_m2_best11, c_m2_s, key2, params_desc.normalRadius, params_desc.searchRadius, params_desc.searchK);
 
@@ -195,14 +206,19 @@ pos_NN_Data=pos_NN_Data(:,1:NN_Number);
 
 
 
-%
+%% Clustering
 validIdx = find((pos_sorted_dist(:,1) ./ pos_sorted_dist(:,2) < 0.7) ...
                 .* (pos_sorted_dist(:,1) ./ pos_sorted_dist(:,2) > 0.1));
 
-gKey1 = key1(:, validIdx);
+gKey1 = double(key1(:, validIdx));
 fv1_v = fv{1}.Vertices;
 fv1_c = fv{1}.FaceVertexCData;
 IDX_1 = knnsearch(gKey1', fv1_v);
+
+%% Soft clustering
+kdtree = vl_kdtreebuild(gKey1) ;
+[index, distance] = vl_kdtreequery(kdtree, gKey1, fv1_v', 'NumNeighbors', 5, 'MaxComparisons', 55) ;
+
 
 % pclviewer([gKey1']');
 
@@ -213,17 +229,24 @@ fv2_c = fv{2}.FaceVertexCData;
 IDX_2 = knnsearch(gKey2', fv2_v);
 
 
+
+
+
+
+%% Match between clusters
 % ii_set = [6, 8, 11, 13, 15, 16, 17];
 bestSubRSet = {};
 bestSubTSet = {};
 
 IDX_SET = unique(IDX_1);
-for iidx = 8%1:length(IDX_SET)
+IDX_SET_invalid = [];
+for iidx = 1:length(IDX_SET)
     ii = IDX_SET(iidx);
     ii_idx = find(IDX_1==ii);
     ii_idx2 = find(IDX_2==ii);
 
     if isempty(ii_idx) || isempty(ii_idx2)
+        IDX_SET_invalid = [ IDX_SET_invalid ; ii];
         continue;
     end
 
@@ -263,8 +286,8 @@ for iidx = 8%1:length(IDX_SET)
     % pclviewer([v_m1 c_m1 ; v_m2 c_m2]');
 
 
-    bestSubRSet{iidx} = bestSubR;
-    bestSubTSet{iidx} = bestSubT;
+    bestSubRSet{ii} = bestSubR;
+    bestSubTSet{ii} = bestSubT;
 
 end
 
@@ -290,7 +313,7 @@ c_m1 = [fv1_c(ii_idx, :)];
 v_m2 = [fv2_v(ii_idx2, :)];
 c_m2 = [fv2_c(ii_idx2, :)];
 % pclviewer([v_m2 c_m2]');
-v_m2_best = bsxfun(@plus, bestSubRSet{iidx}*v_m2', bestSubTSet{iidx})';
+v_m2_best = bsxfun(@plus, bestSubRSet{ii}*v_m2', bestSubTSet{ii})';
 pclviewer([v_m1 c_m1 ; v_m2_best c_m2]');
 
 pclviewer([v_m1 c_m1 ; v_m2 c_m2]');
@@ -306,17 +329,18 @@ c_m1_all = fv1_c;
 v_m2_all = [];
 c_m2_all = [];
 for iidx=1:length(IDX_SET)
+    ii = IDX_SET(iidx);
     
-    if iidx > length(bestSubRSet) || isempty(bestSubRSet{iidx})
+    if ii > length(bestSubRSet) || isempty(bestSubRSet{ii})
         RR = eye(3);
         TT = [0 ; 0 ; 0];
 %         continue;
     else
-        RR = bestSubRSet{iidx};
-        TT = bestSubTSet{iidx};
+        RR = bestSubRSet{ii};
+        TT = bestSubTSet{ii};
     end
     
-    ii = IDX_SET(iidx);
+    
 %     ii_idx = find(IDX_1==ii);
     ii_idx2 = find(IDX_2==ii);
 
@@ -338,44 +362,83 @@ pclviewer([v_m1_all c_m1_all;v_m2_all c_m2_all]');
 
 
 %%Merge into a single big model Type 2
-v_m1_all = [];
-c_m1_all = [];
+viewMergedModel(fv1_v, fv1_c, fv2_v, fv2_c, bestSubRSet, bestSubTSet, IDX_SET, IDX_1);
 
-v_m2_all = fv2_v;
-c_m2_all = fv2_c;
-for iidx=1:length(IDX_SET)
-    
-    if iidx > length(bestSubRSet) || isempty(bestSubRSet{iidx})
-        RR = eye(3);
-        TT = [0 ; 0 ; 0];
-%         continue;
-    else
-        RR = bestSubRSet{iidx};
-        TT = bestSubTSet{iidx};
-    end
-    iidx
-    ii = IDX_SET(iidx);
-    ii_idx = find(IDX_1==ii);
-%     ii_idx2 = find(IDX_2==ii);
 
-    v_m1 = [fv1_v(ii_idx, :)];
-    c_m1 = [fv1_c(ii_idx, :)];
-    % pclviewer([v_m1 c_m1]');
 
-%     v_m2 = [fv2_v(ii_idx2, :)];
-%     c_m2 = [fv2_c(ii_idx2, :)];
-    % pclviewer([v_m2 c_m2]');
-    v_m1_best = (RR'*bsxfun(@minus, v_m1', TT))';
-    
-    v_m1_all = [v_m1_all ; v_m1_best];
-    c_m1_all = [c_m1_all ; c_m1];
-    
+% Trans = GMBasedRegistration(v_m1_s, c_m1_s, v_m2_s, c_m2_s, 0.0);
+% RR = Trans(:,1,end);
+% TT = Trans(:,2,end);
+% v_m2_best = (RR{1}'*bsxfun(@minus, bsxfun(@plus, RR{2}*v_m2_best', TT{2}), TT{1}))';
+% pclviewer([v_m1 c_m1 ; v_m2_best c_m2]');
+
+
+IDX_standard = IDX_1; %move from 1 to 2
+V_standrad = fv1_v;
+
+sXMean = accumarray(IDX_standard, V_standrad(:,1), [], @mean);
+sYMean = accumarray(IDX_standard, V_standrad(:,2), [], @mean);
+sZMean = accumarray(IDX_standard, V_standrad(:,3), [], @mean);
+
+V_centers = [sXMean(:), sYMean(:), sZMean(:)]';
+V_centers(find(V_centers==0)) = -999; %Exclude empty centers
+V_centers(:, IDX_SET_invalid) = -999;
+
+kdtree = vl_kdtreebuild(V_centers) ;
+[index, distance] = vl_kdtreequery(kdtree, V_centers, V_centers, 'NumNeighbors', 10, 'MaxComparisons', 55) ;
+
+validIdx = distance(find(distance < 100));
+
+bestSubRSet_Q = [];
+bestSubTSet_Q = [];
+for i=1:length(bestSubRSet)
+    if isempty(bestSubRSet{i}) continue; end
+    bestSubRSet_Q(i, :) = q_getFromRotationMatrix(bestSubRSet{i});
+    bestSubTSet_Q(i, :) = bestSubTSet{i};
 end
 
-pclviewer([v_m1_all c_m1_all]');
+IDX_standard_set = unique(IDX_standard);
 
-pclviewer([v_m2_all c_m2_all]');
-pclviewer([v_m1_all c_m1_all;v_m2_all c_m2_all]');
+
+lambda = 0.5;
+nn_smooth = 3;
+
+cur_bestSubRSet_Q = bestSubRSet_Q;
+cur_bestSubTSet_Q = bestSubTSet_Q;
+
+for i=1:10
+    next_bestSubRSet_Q = [];
+    next_bestSubTSet_Q = [];
+    for i = 1:length(IDX_standard_set)
+        IDX_next = IDX_standard_set(i);
+
+        w = [lambda (1-lambda).*(1./(distance(2:nn_smooth,IDX_next)'))];
+        subRSet_q_cur = cur_bestSubRSet_Q(index(1:nn_smooth, IDX_next), :);
+        ave_r_q = q_getWeightedAverage(subRSet_q_cur, w);
+        ave_t_q = sum(repmat(w', 1, 3).*cur_bestSubTSet_Q(index(1:nn_smooth, IDX_next), :), 1);
+
+        next_bestSubRSet_Q(IDX_next, :) = ave_r_q;
+        next_bestSubTSet_Q(IDX_next, :) = ave_t_q';
+    end
+    cur_bestSubRSet_Q = next_bestSubRSet_Q;
+    cur_bestSubTSet_Q = next_bestSubTSet_Q;
+end
+
+
+next_bestSubRSet = {};
+next_bestSubTSet = {};
+for i=1:size(next_bestSubRSet_Q, 1)
+    next_bestSubRSet{i} = q_getRotationMatrix(next_bestSubRSet_Q(i,:));
+    next_bestSubTSet{i} = next_bestSubTSet_Q(i,:)';
+end
+
+viewMergedModel(fv1_v, fv1_c, fv2_v, fv2_c, next_bestSubRSet, next_bestSubTSet, IDX_SET, IDX_1);
+
+
+
+rMat = RR{1};
+qs = q_getFromRotationMatrix(rMat);
+rMat2 = q_getRotationMatrix(qs);
 
 
 return;
