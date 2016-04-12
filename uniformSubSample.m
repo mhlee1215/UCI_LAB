@@ -15,6 +15,10 @@ function [ vertices_sub, index, color_sub ] = uniformSubSample( vertices, qFacto
     sYMean = accumarray(qVertices, vertices(:,2), [], @mean);
     sZMean = accumarray(qVertices, vertices(:,3), [], @mean);
     
+    sXMean = sXMean(:);
+    sYMean = sYMean(:);
+    sZMean = sZMean(:);
+    
     validIdx = find((sXMean ~= 0).*(sYMean ~= 0).*(sZMean ~= 0));
     vertices_sub = [sXMean(validIdx), sYMean(validIdx), sZMean(validIdx)]';
     
@@ -25,6 +29,10 @@ function [ vertices_sub, index, color_sub ] = uniformSubSample( vertices, qFacto
         sRMean = accumarray(qVertices, colors(:,1), [], @mean);
         sGMean = accumarray(qVertices, colors(:,2), [], @mean);
         sBMean = accumarray(qVertices, colors(:,3), [], @mean);
+        
+        sRMean = sRMean(:);
+        sGMean = sGMean(:);
+        sBMean = sBMean(:);
     
         color_sub = [sRMean(validIdx), sGMean(validIdx), sBMean(validIdx)]';
     end

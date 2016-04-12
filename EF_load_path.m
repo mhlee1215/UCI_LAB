@@ -21,6 +21,7 @@ end
 if exist('vertices', 'var')
     h=figure; hold on;
     scatter3(vertices(1:10:end,1),vertices(1:10:end,2), vertices(1:10:end,3), 0.5, 'filled');
+    
     poseMM = [];
     for i=1:length(poseSet)
         cameraMat = poseSet{i};
@@ -32,29 +33,29 @@ if exist('vertices', 'var')
     axis equal;
 end
 
-% for i=1:100:length(poseSet)
-%     cameraMat = poseSet{i};
-% %    pM(:,end)
-% %     scatter3(cameraMat.t(1), cameraMat.t(2), cameraMat.t(3), 0.1);
-% %     P = projectImg2World(pM, [0 0]', 0.1);
-%     
-%     
-%     cameraMat.R
-%     Cp = -cameraMat.R'*cameraMat.t;
-%     depth = 0.5;
-%     C1 = projectImg2World(cameraMat, [-imH -imW]', depth);
-%     C2 = projectImg2World(cameraMat, [-imH imW]', depth);
-%     C3 = projectImg2World(cameraMat, [imH imW]', depth);
-%     C4 = projectImg2World(cameraMat, [imH -imW]', depth);
-%     PScene = [C1 ; C2 ; C3 ; C4 ; C1];
-% 
-%     for i=1:size(PScene, 1)-1
-%         line([Cp(1) PScene(i,1)]', [Cp(2) PScene(i,2)]', [Cp(3) PScene(i,3)]', 'linewidth', 1);    
-%         line([PScene(i,1) PScene(i+1,1)]', [PScene(i,2) PScene(i+1,2)]', [PScene(i,3) PScene(i+1,3)]', 'linewidth', 1);    
-%     end
-%     
-% end
-% axis equal;
-% saveas(h, sprintf('%s/trajectory_1.fig', resultPath));
-% close(h);
+for i=1:100:length(poseSet)
+    cameraMat = poseSet{i};
+%    pM(:,end)
+%     scatter3(cameraMat.t(1), cameraMat.t(2), cameraMat.t(3), 0.1);
+%     P = projectImg2World(pM, [0 0]', 0.1);
+    
+    
+    cameraMat.R
+    Cp = -cameraMat.R'*cameraMat.t;
+    depth = 0.5;
+    C1 = projectImg2World(cameraMat, [-imH -imW]', depth);
+    C2 = projectImg2World(cameraMat, [-imH imW]', depth);
+    C3 = projectImg2World(cameraMat, [imH imW]', depth);
+    C4 = projectImg2World(cameraMat, [imH -imW]', depth);
+    PScene = [C1 ; C2 ; C3 ; C4 ; C1];
+
+    for i=1:size(PScene, 1)-1
+        line([Cp(1) PScene(i,1)]', [Cp(2) PScene(i,2)]', [Cp(3) PScene(i,3)]', 'linewidth', 1);    
+        line([PScene(i,1) PScene(i+1,1)]', [PScene(i,2) PScene(i+1,2)]', [PScene(i,3) PScene(i+1,3)]', 'linewidth', 1);    
+    end
+    
+end
+axis equal;
+saveas(h, sprintf('%s/trajectory_1.fig', resultPath));
+close(h);
 end

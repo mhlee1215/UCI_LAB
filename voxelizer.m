@@ -1,4 +1,4 @@
-function [ voxelized, seeds ] = voxelizer( p, c, params )
+function [ voxelized, seeds ] = voxelizer( p, c, n, params )
 % %VOXELIZER Summary of this function goes here
 % %   Detailed explanation goes here
 
@@ -39,8 +39,9 @@ kdtree = vl_kdtreebuild(seeds_filtered');
 [index, distance] = vl_kdtreequery(kdtree, seeds_filtered', p',  'NumNeighbors', nn, 'MaxComparisons', 100);
 index2 = index .* uint32(distance < d/2);
 
-voxelized = zeros(size(seeds, 1), 3);
+voxelized = zeros(size(seeds, 1)*2, 3);
 
+%For color
 c_seed_all = zeros(size(seeds_filtered, 1), 3);
 c_seed_cnt = zeros(size(seeds_filtered, 1), 1);
 for ii=1:size(index2,1)
@@ -59,6 +60,29 @@ end
 nz_idx = find(c_seed_cnt > 0);
 c_seed_all(nz_idx, :) = c_seed_all(nz_idx, :) ./ repmat(c_seed_cnt(nz_idx), 1, 3);
 voxelized(nonzero_single_idx,:) = c_seed_all;
+
+%For surface normal
+if ~isempty(n)
+    n(find(isnan(n))) = 0;
+    n_seed_all = zeros(size(seeds_filtered, 1), 3);
+    n_seed_cnt = zeros(size(seeds_filtered, 1), 1);
+    for ii=1:size(index2,1)
+        %ii
+        nonzero_idx = find(index2(ii,:) > 0);
+        n_seeds1 = accumarray(index2(ii,nonzero_idx)', n(nonzero_idx, 1));
+        n_seeds2 = accumarray(index2(ii,nonzero_idx)', n(nonzero_idx, 2));
+        n_seeds3 = accumarray(index2(ii,nonzero_idx)', n(nonzero_idx, 3));
+
+        n_seed_all(1:length(n_seeds1), 1) = n_seed_all(1:length(n_seeds1), 1) + n_seeds1;
+        n_seed_all(1:length(n_seeds2), 2) = n_seed_all(1:length(n_seeds2), 2) + n_seeds2;
+        n_seed_all(1:length(n_seeds3), 3) = n_seed_all(1:length(n_seeds3), 3) + n_seeds3;
+
+        n_seed_cnt(1:length(n_seeds1)) = n_seed_cnt(1:length(n_seeds1), 1)+(n_seeds1>0);
+    end
+    nz_idx = find(n_seed_cnt > 0);
+    n_seed_all(nz_idx, :) = n_seed_all(nz_idx, :) ./ repmat(n_seed_cnt(nz_idx), 1, 3);
+    voxelized(size(seeds, 1)+nonzero_single_idx,:) = n_seed_all;
+end
 
 end
 

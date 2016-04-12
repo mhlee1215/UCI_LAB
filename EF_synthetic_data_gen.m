@@ -26,7 +26,7 @@ for pi=1%:length(chairMat)
 
 
     v_all = [v ; v2_t ; v3_t];
-    resultFilePath = sprintf('bedroom_syn_parametric_test_%d.klg', pi);
+    resultFilePath = sprintf('bedroom_syn_parametric_test2_%d.klg', pi);
 
     % figure;
     % fv2.Faces = f_all;
@@ -60,17 +60,34 @@ for pi=1%:length(chairMat)
     vertices = v_all;
     faces = f_all;
 
-
     %Load synthetic pose set
+    
+%     poseSet = EF_load_path(poseFilePath, vertices);
 
-    poseSet = EF_load_path(poseFilePath, vertices);
+    p = [-3 1 -2;
+        1 1 2;
+        0 1 -2
+        -2.5 1.1 -1;
+        -0.5 1.1 2;
+        0.0 1.1 0;
+        ];
+    
+    
+    %close loop
+    p = [p ; p(1,:)];
 
+
+    poseSet = syn_path_gen(p, 0.02, vertices);
+%     view(151, -7)
+    view(180, 0)
+    
     delete(resultFilePath);
     logFile = fopen(resultFilePath,'wb+');
     maxFrame = length(poseSet);
     fwrite(logFile, maxFrame, 'int32');
     if isDebug
-        close all; figure;     
+%         close all; 
+        figure;     
     end
     for ii=1:maxFrame
         sprintf('%d/%d ...\n', ii, maxFrame)
@@ -78,8 +95,8 @@ for pi=1%:length(chairMat)
         RR = poseSet{ii}.R;
 
         cam.fcV = [500 ; 500];
-        cam.TcV = (TT).* [-1 1 -1]';%RMat*(T+TMat);%RMat*TMat+T;%RMat*(T+TMat);%RMat*T+TMat .* [1 -1 -1]';
-        cam.RcM = RR .* [-1 -1 -1; 1 1 1; -1 -1 -1];%RMat*R;%*RMat;%RMat*R .* [1 1 1; -1 -1 -1; -1 -1 -1];
+        cam.TcV = (TT).* [-1 1 1]';%RMat*(T+TMat);%RMat*TMat+T;%RMat*(T+TMat);%RMat*T+TMat .* [1 -1 -1]';
+        cam.RcM = RR.* [-1 -1 -1; 1 1 1; 1 1 1];%.* [-1 -1 -1; 1 1 1; -1 -1 -1];%RMat*R;%*RMat;%RMat*R .* [1 1 1; -1 -1 -1; -1 -1 -1];
         cam.ccV = [ScreenSizeV(2)./2 ScreenSizeV(1)./2]';
 
         invertedDepth = false;

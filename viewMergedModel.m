@@ -1,4 +1,4 @@
-function [ output_args ] = viewMergedModel( fv1_v, fv1_c, fv2_v, fv2_c, bestSubRSet, bestSubTSet, IDX_SET, IDX_1 )
+function [ output_args ] = viewMergedModel( fv1_v, fv1_c, fv2_v, fv2_c, bestSubRSet, bestSubTSet, group_1, group_2 )
 %VIEWMERGEDMODEL Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -7,9 +7,9 @@ c_m1_all = [];
 
 v_m2_all = fv2_v;
 c_m2_all = fv2_c;
-for iidx=1:length(IDX_SET)
-    iidx
-    ii = IDX_SET(iidx);
+for ii=1:length(group_1)
+%     iidx
+%     ii = IDX_SET(iidx);
     
     if ii > length(bestSubRSet) || isempty(bestSubRSet{ii})
         RR = eye(3);
@@ -20,8 +20,8 @@ for iidx=1:length(IDX_SET)
         TT = bestSubTSet{ii};
     end
     
-    ii_idx = find(IDX_1==ii);
-%     ii_idx2 = find(IDX_2==ii);
+    ii_idx = group_1{ii};%find(IDX_1==ii);
+%     ii_idx2 = group_2{ii};%find(IDX_2==ii);
 
     v_m1 = [fv1_v(ii_idx, :)];
     c_m1 = [fv1_c(ii_idx, :)];
