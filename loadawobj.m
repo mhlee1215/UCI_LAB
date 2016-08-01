@@ -107,6 +107,10 @@ while ~feof(fid)
         disp(Ln);
     case 'usemtl' % use this material name
         disp(Ln);
+        g3num=[g3num vnum];
+      g4num=[g4num vnum];
+      gnum=gnum+1;
+      g{gnum}=Ln(3:end);
     case 'l' % Line
         disp(Ln);
     case 's' %smooth shading across polygons

@@ -97,6 +97,7 @@ function ply_write ( Elements, Path, Format, Str )
   NumElements = length(ElementNames);
   Data = cell(NumElements,1);
 
+  tmp = [];
   for i = 1 : NumElements
 
     eval(['tmp=isa(Elements.',ElementNames{i},',''struct'');']);

@@ -1,9 +1,10 @@
-function [ vertices_sub, index, color_sub ] = uniformSubSample( vertices, qFactor, colors)
+function [ vertices_sub, index, color_sub, normal_sub ] = uniformSubSample( vertices, qFactor, colors, normals)
 %SUBSAMPLE Summary of this function goes here
 %   Detailed explanation goes here
 % 
 %     if isempty(minP)
     color_sub = [];
+    normal_sub = [];
 
      minP = min(vertices);
 %     end
@@ -35,6 +36,18 @@ function [ vertices_sub, index, color_sub ] = uniformSubSample( vertices, qFacto
         sBMean = sBMean(:);
     
         color_sub = [sRMean(validIdx), sGMean(validIdx), sBMean(validIdx)]';
+    end
+    
+    if exist('normals', 'var')
+        sN1Mean = accumarray(qVertices, normals(:,1), [], @mean);
+        sN2Mean = accumarray(qVertices, normals(:,2), [], @mean);
+        sN3Mean = accumarray(qVertices, normals(:,3), [], @mean);
+        
+        sN1Mean = sN1Mean(:);
+        sN2Mean = sN2Mean(:);
+        sN3Mean = sN3Mean(:);
+    
+        normal_sub = [sN1Mean(validIdx), sN2Mean(validIdx), sN3Mean(validIdx)]';
     end
     
    

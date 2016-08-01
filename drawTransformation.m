@@ -49,6 +49,7 @@ maxNumIter = size(T, 3);
             hg2 = cellfun(@(TV,Assigned,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,GMM_color(Assigned,:),'filled'), TV, Assigned, marker, markerSize, 'UniformOutput', false);
         end
 
+        axis equal;
     %     set(gca, 'position',get(gca,'position')+[+580 0 0 0]);
 
         % iteration 1 locks the axes of subsequent plots

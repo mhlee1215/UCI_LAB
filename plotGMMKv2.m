@@ -42,14 +42,31 @@ function [h] = plotGMMKv2( params )
     fv2.Vertices = fv{setId}.Vertices;
     
     % 
-    h = figure;
+    if ~isfield(params, 'h')
+        h = figure;
+    else
+        h = params.h;
+    end
+    
+    if ~isfield(params, 'bcolor')
+        bcolor = [0.9 0.6 0.6];
+    else
+        bcolor = params.bcolor;
+    end
+    
+    if ~isfield(params, 'fcolor')
+        fcolor = [0.7 0.7 0.9];
+    else
+        fcolor = params.fcolor;
+    end
+    
     
     %Color type
     if type == 1
         fv2.FaceVertexCData = fv{setId}.FaceVertexCData;
         if isempty(fv2.Faces)
             interval = 10;
-            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,fv2.FaceVertexCData(gmmk_Idx,:),[0.5 0 0]);
+            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,fv2.FaceVertexCData(gmmk_Idx,:),bcolor-[0.7 0.7 0.7]);
             scatter3(fv2.Vertices(1:interval:end,1), fv2.Vertices(1:interval:end,2), ...
                 fv2.Vertices(1:interval:end,3), 8, fv2.FaceVertexCData(1:interval:end, :), 'filled');
             view(28, -20);
@@ -69,16 +86,16 @@ function [h] = plotGMMKv2( params )
         if isempty(fv2.Faces)
             interval = 10;
             fv2.FaceVertexCData = zeros(size(fv{setId}.Vertices));%sColor(:,I2{id})';
-            fv2.FaceVertexCData = bsxfun(@plus, fv2.FaceVertexCData, [0.7 0.7 0.9]);
-            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,bsxfun(@times, fv2.FaceVertexCData(gmmk_Idx,:), [0 0 0]),[0.9 0.4 0.4]);
+            fv2.FaceVertexCData = bsxfun(@plus, fv2.FaceVertexCData, fcolor);
+            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,bsxfun(@times, fv2.FaceVertexCData(gmmk_Idx,:), [0 0 0]),bcolor);
             scatter3(fv2.Vertices(1:interval:end,1), fv2.Vertices(1:interval:end,2), ...
                 fv2.Vertices(1:interval:end,3), 8, fv2.FaceVertexCData(1:interval:end, :), 'filled');
             view(28, -20);
             axis equal;
         else
             fv2.FaceVertexCData = zeros(size(fv{setId}.Vertices));%sColor(:,I2{id})';
-            fv2.FaceVertexCData = bsxfun(@plus, fv2.FaceVertexCData, [0.7 0.7 0.9]);
-            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,bsxfun(@times, fv2.FaceVertexCData(gmmk_Idx,:), [0 0 0]),[0.9 0.4 0.4]);
+            fv2.FaceVertexCData = bsxfun(@plus, fv2.FaceVertexCData, fcolor);
+            fv2.FaceVertexCData(gmmk_Idx,:) = bsxfun(@plus,bsxfun(@times, fv2.FaceVertexCData(gmmk_Idx,:), [0 0 0]),bcolor);
             patch(fv2, ...
                  'FaceColor','flat','EdgeColor','flat', ...
                  'EdgeColor',       'none',        ...

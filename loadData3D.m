@@ -1,8 +1,9 @@
-function [ v, f, c ] = loadData3D( filename )
+function [ v, f, c, g ] = loadData3D( filename )
 
 v = [];
 f = [];
 c = [];
+g = [];
 
     [pathstr,name,ext] = fileparts(filename); 
 
@@ -10,6 +11,7 @@ c = [];
         obj = loadawobj(filename);
         v = obj.v';
         f = obj.f3';
+        g = obj.g3;
     elseif strcmpi(ext, '.ply') == 1
         [tri, pts, data, comments] = ply_read(filename, 'tri');
         v = [data.vertex.x data.vertex.y data.vertex.z];

@@ -139,6 +139,7 @@ for data_idx = 1:d_size
 end
 V = V2';
 
+return;
 
 v_m1_all = fv{1}.Vertices;
 v_m2_all = fv{2}.Vertices;
