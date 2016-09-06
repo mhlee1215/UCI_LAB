@@ -19,7 +19,7 @@ clear all
 
 addpath(genpath('libs'));
 addpath(genpath('libs2'));
-run('libs2/vlfeat-0.9.20-bin/vlfeat-0.9.20/toolbox/vl_setup');
+% run('libs2/vlfeat-0.9.20-bin/vlfeat-0.9.20/toolbox/vl_setup');
 
 
 % data3DFilePath = '/home/mhlee/Kinect_Logs/2016-02-03.00.klg.ply';
@@ -40,12 +40,12 @@ run('libs2/vlfeat-0.9.20-bin/vlfeat-0.9.20/toolbox/vl_setup');
 % hold on;
 
 %data_set = [1:6 8:14];%[1 2 3 4];
-dataRoot = '/home/mhlee/data';
+dataRoot = '/home/mhlee/data_from_odroid/match';
 % data_set = {'2016-02-09.01','2016-02-09.02','2016-02-09.03'};
-data_set = {'2016-02-24.00','2016-02-24.02'};
+data_set = {'LAB_1-2016-07-22_12_32.klg_cvt','2016-02-24.02'};
 d_size = length(data_set);
 
-resultPath = 'results/EF_portable_1';
+resultPath = 'results/EF_real_match';
 mkdir(resultPath);
 
 

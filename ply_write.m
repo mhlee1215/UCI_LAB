@@ -264,16 +264,36 @@ function ply_write ( Elements, Path, Format, Str )
           end
         else
         % mixed type
-          for k = 1:ElementCount(i)
-            for j = 1:length(PropertyNames{i})
-              if Type{i}(j) <= 8
-                fwrite(fid,Data{i}{j}(k),FWriteTypeNames{Type{i}(j)});
-              else
-                fwrite(fid,length(Data{i}{j}{k}),'uchar');
-                fwrite(fid,Data{i}{j}{k},FWriteTypeNames{Type{i}(j)-9});
-              end
+          DataB = uint8(zeros(length(PropertyNames{i}), ElementCount(i)));
+          
+          curCol = 1;
+          for j = 1:length(PropertyNames{i})
+            if Type{i}(j) == 7
+                allCvt = typecast(single(Data{i}{j}), 'uint8');    
+                allCvt = reshape(allCvt, 4, length(Data{i}{j}));
+                DataB(curCol:curCol+4-1, :) = allCvt;
+                curCol = curCol + 4;
+            elseif Type{i}(j) == 2
+                allCvt = typecast(uint8(Data{i}{j}), 'uint8');
+                DataB(curCol:curCol, :) = allCvt;
+                curCol = curCol + 1;
             end
           end
+          
+          fwrite(fid,DataB(:)','uchar');
+            
+%           for k = 1:ElementCount(i)  
+%             for j = 1:length(PropertyNames{i})
+%               if Type{i}(j) <= 8
+%                 fwrite(fid,Data{i}{j}(k),FWriteTypeNames{Type{i}(j)});
+%               else
+%                 fwrite(fid,length(Data{i}{j}{k}),'uchar');
+%                 fwrite(fid,Data{i}{j}{k},FWriteTypeNames{Type{i}(j)-9});
+%               end
+%             end
+%           end
+          
+          
         end
       end
     end

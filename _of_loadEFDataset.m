@@ -34,8 +34,7 @@ for data_idx = 1:d_size
     data3DFilePath = sprintf('%s/%s', dataRoot, data_set{data_idx});
     [tri, pts, data, comments] = ply_read(data3DFilePath, 'tri');
     
-    nameParts = strsplit(data_set{data_idx}, '.ply');
-    dataCameraPoseFilePath = sprintf('%s/%s.freiburg', dataRoot, nameParts{1});
+    dataCameraPoseFilePath = sprintf('%s/%s.klg.freiburg', dataRoot, data_set{data_idx});
     if exist(dataCameraPoseFilePath, 'file') == 2    
         dataCameraPoseFileID = fopen(dataCameraPoseFilePath);
         C = textscan(dataCameraPoseFileID,'%f');
@@ -92,17 +91,17 @@ for data_idx = 1:d_size
     f = tri';
     c = [data.vertex.red data.vertex.green data.vertex.blue];
     n = [data.vertex.nx data.vertex.ny data.vertex.nz];
-    radius = data.vertex.radius;
+    
 %     r_trans = (rand(3,1)-0.5)/2;
 %     r_theta = rand()*pi/8 - pi/16;
 %     r_rot = [cos(r_theta) -sin(r_theta) 0 ; sin(r_theta) cos(r_theta) 0 ; 0 0 1];
 %     
-%     r_trans = (rand(3,1)-0.5)/4;
-%     r_theta = rand()*pi/16 - pi/32;
-%     r_rot = [cos(r_theta) -sin(r_theta) 0 ; sin(r_theta) cos(r_theta) 0 ; 0 0 1];
-%     
-%     syn_t{data_idx} = r_trans;
-%     syn_r{data_idx} = r_rot;
+    r_trans = (rand(3,1)-0.5)/4;
+    r_theta = rand()*pi/16 - pi/32;
+    r_rot = [cos(r_theta) -sin(r_theta) 0 ; sin(r_theta) cos(r_theta) 0 ; 0 0 1];
+    
+    syn_t{data_idx} = r_trans;
+    syn_r{data_idx} = r_rot;
     
     %Make intentional error
 %     v = bsxfun(@plus, r_rot*v', r_trans)';
@@ -151,7 +150,6 @@ for data_idx = 1:d_size
     dataSet{data_idx}.f = f';
     dataSet{data_idx}.c = (c./255)';
     dataSet{data_idx}.n = (n)';
-    dataSet{data_idx}.radius = radius;
 %     dataSet{data_idx}.vs = sData;
 %     dataSet{data_idx}.cs = sColor;
 %     dataSet{data_idx}.ns = sNormal;

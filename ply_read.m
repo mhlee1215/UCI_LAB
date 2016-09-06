@@ -451,12 +451,28 @@ function [ Elements, varargout ] = ply_read ( Path, Str )
         else
 
           Data = zeros(ElementCount(i),NumProperties);
-
-          for j = 1 : ElementCount(i)
-            for k = 1 : NumProperties
-              Data(j,k) = fread(fid,1,Type{k});
+          %typecast(uint8([aa(1:27:end)' aa(2:27:end)' aa(3:27:end)' aa(4:27:end)']), 'single')
+          allUint8 = fread(fid,'uint8');
+          allM = reshape(allUint8, sum(TypeSize), size(allUint8, 1)/sum(TypeSize))';
+          
+          curCol = 1;
+          for k = 1 : NumProperties
+            workRange = curCol:(curCol+TypeSize(k)-1);
+            if strcmp(Type{k}, 'uchar') == 1
+                allCvt = typecast(uint8(reshape(allM(:, workRange)', 1, prod(size(allM(:, workRange))))), 'uint8');
+            else
+                allCvt = typecast(uint8(reshape(allM(:, workRange)', 1, prod(size(allM(:, workRange))))), Type{k});
             end
+            Data(:, k) = allCvt;    
+            curCol = curCol + TypeSize(k);
           end
+          
+          
+%           for j = 1 : ElementCount(i)
+%             for k = 1 : NumProperties
+%               Data(j,k) = fread(fid,1,Type{k});
+%             end
+%           end
 
         end
 

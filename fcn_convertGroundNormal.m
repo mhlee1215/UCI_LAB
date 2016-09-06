@@ -66,68 +66,24 @@ idx = 1;
 vForSeg = data.vs{idx}';
 cForSeg = data.cs{idx}';
 nForSeg = data.ns{idx}';
-% iForSeg = data.ns{idx}.sIndex;
 
-% [ segmentedPoints, coloredCloud ] = Segmentation(vForSeg, nForSeg.*0.5, 200, '');
-% [segmentIndex, segmentId] = getIndexFromVertices(vForSeg, segmentedPoints);
-% 
-% Seg.group = segmentIndex;
-% Seg.idx = segmentId;
-% 
-% % Vertex = data.vs{idx};
-% % Color = data.cs{idx};
-% % SegVertex = coloredCloud(1:3, :);
-% % SegColor = coloredCloud(4:6, :);
-% 
-% segNorm = [];
-% for i=1:length(Seg.group)
-%     segNorm = [segNorm ; [i sqrt(mean(var(nForSeg(Seg.group{i}, :))))/length(Seg.group{i})]];
-% end
-% 
-% minIdx = 11;
-% pclviewer([vForSeg(Seg.group{minIdx},:) cForSeg(Seg.group{minIdx},:)]');
-% 
-% w = [0.05 1.0 2.0];
-% [clustCent,point2cluster,clustMembsCell] = ...
-%     MeanShiftCluster([vForSeg.*w(1) cForSeg.*w(2) (nForSeg).*w(3)]', 0.5);
-% 
-% clustVar = {};
-% for i=1:length(clustMembsCell)
-%     clustVar{i} = sqrt(mean(var(nForSeg(find(point2cluster == i), :)))) + ...
-%         sqrt(mean(var(cForSeg(find(point2cluster == i), :))));
-% end
-% 
-% s=cellfun(@size,clustMembsCell,'uniform',false);
-% [trash is]=sortrows(cat(1,s{:}),-[1 2]);
-% clusterSorted = clustMembsCell(is);
-% % segmentIndex = getIndexFromVertices(V{segId}', clusterSorted);
-% % Annotation3DGui(Vertex, Color, SegVertex, SegColor, Seg);
-% 
-% 
-% idxSet = clusterSorted{1};%find(point2cluster == 1);
-% pclviewer([vForSeg(idxSet,:) cForSeg(idxSet,:)]');
-% 
-% 
-% pclviewer([vForSeg cForSeg]');
+[Rground] = fcn_convertGroundNormalCore( vForSeg, nForSeg );
 
-disp('Ransac for fit plane...');
-% progressbar2(curStep/maxStep); curStep = curStep + 1;
-[B, P, inliers] = ransacfitplane(vForSeg', 0.03);
-% pclviewer([vForSeg(inliers,:) cForSeg(inliers,:)]');
-meanNormal = -B(1:3);%mean(nForSeg(inliers, :));
-R=fcn_RotationFromTwoVectors(meanNormal, [0 0 1]);
-
-Rv = (R*vForSeg')';
+Rv = (Rground*vForSeg')';
 zOffset = mean(Rv(inliers, 3));
 % pclviewer([(R*vForSeg')' cForSeg]');
 % pclviewer([(vForSeg')' cForSeg]');
+%figure; scatter3(vForSeg(:, 1)', vForSeg(:, 2)', vForSeg(:, 3)', 8, cForSeg, 'filled');
+% figure; scatter3(Rv(:, 1)', Rv(:, 2)', Rv(:, 3)', 8, cForSeg, 'filled');
+
+
 
 vForSeg = data.vb{idx}'; 
 cForSeg = data.cb{idx}';
 nForSeg = data.nb{idx}';
 
-Rv = bsxfun(@minus, (R*vForSeg')' ,[0 0 zOffset]);
-Rn = (R*nForSeg')';
+Rv = bsxfun(@minus, (Rground*vForSeg')' ,[0 0 zOffset]);
+Rn = (Rground*nForSeg')';
 d.vertex.x = Rv(:,1);
 d.vertex.y = Rv(:,2);
 d.vertex.z = Rv(:,3);
@@ -145,25 +101,13 @@ disp(sprintf('Writing Ply...%s', writingPath));
 ply_write(d, writingPath, 'binary_little_endian');
 
 
-poseFilePath = sprintf('%s/%s.freiburg', dataRoot, inPath);
-%     r
-     poseMat = fscanf(poseFileID, '%f');
-%     poseMat = reshape(poseMat, 17, length(poseMat)/17)';    
-%     poseSet = {};
-%     poseMatSet = {};
-%     for pi = 1:size(poseMat, 1)
-%         pM = [poseMat(pi, 1*4+1+1) poseMat(pi, 2*4+1+1) poseMat(pi, 3*4+1+1)];
-%         poseMatSet{end+1} = reshape(poseMat(pi, 2:end), 4, 4);
-%         poseSet{end+1} = pM;
-%     end
-%     
-%     poseSetMat = cell2mat(poseSet);
-%     poseSetMat = reshape(poseSetMat, 3, length(poseSet))';
-%     [poseSetMatUnique, ia, ic] = unique(poseSetMat, 'rows');
-%     poseSet = mat2cell(poseSetMatUnique, repmat(1, size(poseSetMatUnique,1), 1), 3)';
-%     poseMatSet2 = poseMatSet(ia);
-
-
+normInfoFilePath = sprintf('%s/%s.info', dataRoot, outPath);
+disp(sprintf('Writing Info...%s', normInfoFilePath));
+normInfoFile = fopen(normInfoFilePath, 'w');
+q = q_getFromRotationMatrix(Rground);
+fprintf(normInfoFile, '%f %f %f %f %f', q(1), q(2), q(3), q(4), zOffset);
+fclose(normInfoFile);
+    
 disp('Finished.');
 
 end

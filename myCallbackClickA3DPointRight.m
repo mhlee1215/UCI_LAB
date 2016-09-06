@@ -22,8 +22,9 @@ global prevGroup;
 global visibleFigIdx;
 global visibleFigIdx2;
 global S;
+global dataIdx;
 
-visibleFigIdxRight = visibleFigIdx2{selectedObjectIndex};
+visibleFigIdxRight = visibleFigIdx2{dataIdx}{selectedObjectIndex};
 hh = S.ax2;
 
 point = get(hh, 'CurrentPoint'); % mouse click position
@@ -111,11 +112,14 @@ disp('2hihi');
          
          set(S.axt2{selectedGroupNumber}, 'Visible', 'off');
          set(S.axt_seg2{selectedGroupNumber}, 'Visible', 'off');
-         visibleFigIdx(selectedGroupIdx) = 1;
-         visibleGroupLeftIdx(selectedGroupNumber) = 1;
+         visibleFigIdx{dataIdx}(selectedGroupIdx) = 1;
+         visibleGroupLeftIdx{dataIdx}(selectedGroupNumber) = 1;
+         
+         set(S.axSubt{dataIdx}{selectedGroupNumber}, 'Visible', 'off');
+         set(S.axSubt_seg{dataIdx}{selectedGroupNumber}, 'Visible', 'off');
          
          disp(sprintf('group number : %d deleted', selectedGroupNumber));
-         annotationResult{selectedObjectIndex}.group(selectedGroupNumber) = 0;
+         annotationResult{dataIdx}{selectedObjectIndex}.group(selectedGroupNumber) = 0;
          %Update fig... TODO!
 %          S.axt2{selectedGroupNumber} = scatter3(S.ax2, pointCloud(1,selectedGroupIdx), pointCloud(2,selectedGroupIdx), ...
 %             pointCloud(3,selectedGroupIdx), 8, C(:,selectedGroupIdx)', 'filled'); hold on;

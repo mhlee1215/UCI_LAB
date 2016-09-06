@@ -1,4 +1,4 @@
-function [ vertices_sub, index, color_sub, normal_sub ] = uniformSubSample( vertices, qFactor, colors, normals)
+function [ vertices_sub, index, color_sub, normal_sub, pDensity ] = uniformSubSample( vertices, qFactor, colors, normals)
 %SUBSAMPLE Summary of this function goes here
 %   Detailed explanation goes here
 % 
@@ -12,6 +12,9 @@ function [ vertices_sub, index, color_sub, normal_sub ] = uniformSubSample( vert
 % qFactor = 100;
     qVertices = uint16((vertices - repmat(minP, size(vertices, 1), 1)).*qFactor)+1;
     
+    pDensityAll = accumarray(qVertices, ones(size(vertices, 1), 1), [], @sum);
+    pDensityAll = pDensityAll(:);
+    
     sXMean = accumarray(qVertices, vertices(:,1), [], @mean);
     sYMean = accumarray(qVertices, vertices(:,2), [], @mean);
     sZMean = accumarray(qVertices, vertices(:,3), [], @mean);
@@ -20,8 +23,10 @@ function [ vertices_sub, index, color_sub, normal_sub ] = uniformSubSample( vert
     sYMean = sYMean(:);
     sZMean = sZMean(:);
     
+    
     validIdx = find((sXMean ~= 0).*(sYMean ~= 0).*(sZMean ~= 0));
     vertices_sub = [sXMean(validIdx), sYMean(validIdx), sZMean(validIdx)]';
+    pDensity = pDensityAll(validIdx);
     
     kdtree = vl_kdtreebuild(vertices_sub) ;
     [index, distance] = vl_kdtreequery(kdtree, vertices_sub, vertices', 'MaxComparisons', 55) ;

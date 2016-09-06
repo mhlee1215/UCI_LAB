@@ -45,12 +45,15 @@ dataRoot = '/home/mhlee/Kinect_Logs_test';
 % data_set = {'2016-04-29.03', '2016-04-29.05', '2016-04-29.06', '2016-04-29.00','2016-04-29.08'};
 %Wrong init pos : '2016-04-29.06'
 % data_set = {'2016-04-29.00', '2016-04-29.01', '2016-04-29.02', '2016-04-29.03', '2016-04-29.05', '2016-04-29.08'};%, '2016-04-29.05'};%, '2016-04-29.00','2016-04-29.08'};
-data_set = {'2016-04-29.00', '2016-04-29.01', '2016-04-29.02', '2016-04-29.03', '2016-04-29.05', '2016-04-29.08'};%, '2016-04-29.05'};%, '2016-04-29.00','2016-04-29.08'};
+data_set = {'2016-04-29.00.klg.ply', '2016-04-29.01.klg.ply', ...
+    '2016-04-29.02.klg.ply', '2016-04-29.03.klg.ply', '2016-04-29.05.klg.ply', '2016-04-29.08.klg.ply'};%, '2016-04-29.05'};%, '2016-04-29.00','2016-04-29.08'};
 d_size = length(data_set);
 
 
 [dataSet, poseSet] = loadEFDataset( dataRoot, data_set);
 dataSetSampled = loadUniformSampling(dataSet, 20);
+
+
 
 V = {};
 N = {};
@@ -219,14 +222,15 @@ maxNumIter = 100;
 %     jrResult{i}.TAssigned = TAssigned;
 % end
 % 
-GMM_color = bsxfun(@plus, rand(params.K, 3)./2, [0.3 0.3 0.3]);
-pcl_model = [];
-ii=10;
-for i=1:M
-    clustAssin = cell2mat(jrResult{ii}.TAssigned(i,end));
-    pcl_model = [pcl_model [TV{i} ;GMM_color(clustAssin, :)']];
-end
-pclviewer(pcl_model);
+% params.K = K;
+% GMM_color = bsxfun(@plus, rand(params.K, 3)./2, [0.3 0.3 0.3]);
+% pcl_model = [];
+% ii=10;
+% for i=1:M
+%     clustAssin = cell2mat(jrResult{ii}.TAssigned(i,end));
+%     pcl_model = [pcl_model [TV{i} ;GMM_color(clustAssin, :)']];
+% end
+% pclviewer(pcl_model);
 
 
 

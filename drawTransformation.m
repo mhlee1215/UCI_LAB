@@ -19,10 +19,33 @@ if type == 2
 end
 
 interval = params.interval;
-marker = params.marker;
-markerSize = params.markerSize;
-clrmap = params.clrmap;
-strIdx = params.strIdx;
+
+
+
+M = length(V);
+idx = transpose(1:M);
+strIdx = arrayfun(@(j) sprintf('view %d',j),idx,'uniformoutput',false);
+clrmap = {[1 0 0] ; [0 1 0] ; [0 0 1] ; [1 1 1] ; [0 0 0] ; [0.3 0.3 0.3] ; [.5 0.9 0.9] ; [0.8 1 1]; [0 0 0] ...
+    ; [1 1 0]; [1 0 1] ; [0 1 1] ; [1 0 0] ; [0 1 0] ; [0 0 1] ; [1 1 1] ; [0 0 0] ; [0.3 0.3 0.3] ; [.5 0.9 0.9] ; [0.8 1 1]; [0 0 0]};
+clrmap = clrmap(1:M);
+
+markerSize = {};
+for ii=1:M
+    markerSize{end+1} = 5+ii*2;
+end
+markerSize = markerSize';
+markerSize = markerSize(1:M);
+
+marker_set = {'s', 'x', '.', '^'};
+marker = {};
+for i=1:M
+    marker{end+1} = marker_set{mod(i, 4)+1};
+end
+marker = marker';
+
+
+
+TXQ = params.TXQ;
 
 maxNumIter = size(T, 3);
     for iter = 0:interval:maxNumIter-1
@@ -42,11 +65,13 @@ maxNumIter = size(T, 3);
         if type == 1
 %         hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize.*1.5,[0 0 0],'filled'), TV, clrmap, marker, markerSize, 'UniformOutput', false);
             hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,clrmap,'filled'), TV, clrmap, marker, markerSize, 'UniformOutput', false);
+            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 8, 'k', 'filled');
 %         hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,clrmap,marker), TV, clrmap, marker, markerSize, 'UniformOutput', false);
 %         legend(strIdx{:});
         elseif type == 2
             Assigned = params.Assigned(:,iter+1);
-            hg2 = cellfun(@(TV,Assigned,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,GMM_color(Assigned,:),'filled'), TV, Assigned, marker, markerSize, 'UniformOutput', false);
+            hg2 = cellfun(@(TV,Assigned,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,GMM_color(Assigned,:),'filled'), TV, Assigned, markerSize(1:length(TV)), 'UniformOutput', false);
+            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 8, 'k', 'filled');
         end
 
         axis equal;

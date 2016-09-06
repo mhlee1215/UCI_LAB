@@ -22,6 +22,7 @@ global prevGroup;
 global visibleFigIdx;
 global visibleFigIdx2;
 global S;
+global dataIdx;
 
 hh = S.ax;
 
@@ -43,9 +44,9 @@ yAxis = cross(zAxis, xAxis);
 rot = [xAxis; yAxis; zAxis]; % view rotation 
 
 % the point cloud represented in the view frame
-disp(sprintf('Visible num : %d', sum(visibleFigIdx)));
+disp(sprintf('Visible num : %d', sum(visibleFigIdx{dataIdx})));
 
-visibleIndex = find(visibleFigIdx);
+visibleIndex = find(visibleFigIdx{dataIdx});
 rotatedPointCloud = rot * pointCloud(:,visibleIndex); 
 
 % the clicked point represented in the view frame
@@ -109,14 +110,17 @@ else % if it is not the first click
          
          set(S.axt{selectedGroupNumber}, 'Visible', 'off');
          set(S.axt_seg{selectedGroupNumber}, 'Visible', 'off');
-         visibleGroupLeftIdx(selectedGroupNumber) = 0;
+         visibleGroupLeftIdx{dataIdx}(selectedGroupNumber) = 0;
+         
+         set(S.axSubt{dataIdx}{selectedGroupNumber}, 'Visible', 'on');
+         set(S.axSubt_seg{dataIdx}{selectedGroupNumber}, 'Visible', 'off');
          
          
          disp(sprintf('group number : %d deleted', selectedGroupNumber));
-         visibleFigIdx(selectedGroupIdx) = 0;
+         visibleFigIdx{dataIdx}(selectedGroupIdx) = 0;
          
-         annotationResult{selectedObjectIndex}.group(selectedGroupNumber) = 1;
-         visibleFigIdx2{selectedObjectIndex}(selectedGroupIdx) = 1;
+         annotationResult{dataIdx}{selectedObjectIndex}.group(selectedGroupNumber) = 1;
+         visibleFigIdx2{dataIdx}{selectedObjectIndex} = selectedGroupIdx;
          %Update fig... TODO!
 %          S.axt2{selectedGroupNumber} = scatter3(S.ax2, pointCloud(1,selectedGroupIdx), pointCloud(2,selectedGroupIdx), ...
 %             pointCloud(3,selectedGroupIdx), 8, C(:,selectedGroupIdx)', 'filled'); hold on;
