@@ -3,7 +3,7 @@ function [ Q2 ] = covDimReduction( Q )
 %   Detailed explanation goes here
 
 [U, S, V] = svd(Q);
-Q2 = U*[S(1,1) 0 0 ; 0 S(2,2) 0 ; 0 0 0]*V';
+Q2 = U*[S(1,1) 0 0 ; 0 S(2,2) 0 ; 0 0 S(3, 3)*1]*V';
 
 
 end

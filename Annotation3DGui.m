@@ -78,6 +78,12 @@ for i=1:dataSize
     end
 end
 
+global curSubIdx;
+curSubIdx = 1;
+
+global curSubBeginIdx;
+curSubBeginIdx = 1;
+
 % global seg;
 % seg = Seg;
 
@@ -108,14 +114,21 @@ SV = segData{dataIdx}.SegVertex;
 SC = segData{dataIdx}.SegColor;
 Seg = segData{dataIdx};
 
+global bWidth;
 bWidth = 240;
+global topPanelHeight;
 topPanelHeight = 250;
+global bottomPaneHeight;
 bottomPaneHeight = 100;
+global paddingFig;
 paddingFig = 50;
+global height;
 height = 900;
+global width;
 width = 1400;
 % ws = [1280 680];
 fWidth = height-bottomPaneHeight-paddingFig*2-topPanelHeight;
+global fSize;
 fSize = [fWidth fWidth];
 
 ws = [width height];
@@ -154,6 +167,8 @@ S.ls = uicontrol('style','list',...
     'fontsize',12,...
     'string', defaultObjects...
     );
+
+
 bPos = bPos - [0 bSize(2)+padding];
 bSize = [bWidth-50 30];
 S.ed = uicontrol('style','edit',...
@@ -172,28 +187,32 @@ S.pb = uicontrol('style','push',...
 
 S.axSubt = {};
 S.axSubt_seg = {};
-for ii=1:4
+S.axSubPanel = {};
+for ii=1:dataSize
     S.axSubt{ii} = {};
     S.axSubt_seg{ii} = {};
-    S.axSub(ii) = axes('units','pixels',...
-        'position',[bWidth+50+paddingFig+(ii-1)*(topPanelHeight-paddingFig/2+paddingFig/2) paddingFig*2+bottomPaneHeight+fSize(2) topPanelHeight-paddingFig/2 topPanelHeight-paddingFig/2]);
-    
-    %     hold on;
-    %     for src = ii
-    % %         h=figure; hold on;
-    %         for i=src%1:length(TV)
-    %             clustAssin = cell2mat(TAssigned(i,end));
-    % %             observedVec = unObservedAllX(src, clustAssin);%max(observedAllX(src,clustAssin), observedAllX2(src,clustAssin));
-    %             scatter3(S.axSub(ii), TV{i}(1,:)', TV{i}(2,:)', TV{i}(3,:)', 8, SEG_color(observedVec+1, :), 'filled');
-    %         end
-    %
-    %         view(-184, -27);
-    %
-    %     end
+%     hPanel = uipanel('Units', 'pixels', 'position',[100 100 500 500 ], 'title','Objects');
+  
+    S.axSubPanel{ii} = uipanel('Parent', S.fh, 'HighlightColor', [0.8 0.8 0.8], 'BorderType', 'line', ...
+        'BorderWidth', 4, 'Units', 'pixels', ...
+        'position',[bWidth+50+paddingFig+(ii-1)*(topPanelHeight+paddingFig) paddingFig*2+bottomPaneHeight+fSize(2) topPanelHeight-paddingFig/2 topPanelHeight-paddingFig/2] ...
+       , 'title', sprintf('Dataset %d', ii));
+    S.axSub(ii) = axes('parent', S.axSubPanel{ii} , 'units','pixels',...
+      'position',[5 5 topPanelHeight-paddingFig/2-10 topPanelHeight-paddingFig/2-10]);
+
     grid(S.axSub(ii));
     axis(S.axSub(ii), 'equal');
+  
+    if ii > 3
+        set(S.axSubPanel{ii}, 'Visible', 'off');
+    end
+  
+    
 end
 
+
+
+set(S.axSubPanel{curSubIdx}, 'HighlightColor', [0 0 0]);
 
 
 S.axt2 = {};
@@ -327,6 +346,13 @@ S.pb = uicontrol('style','push',...
     'string','Next >',...
     'callback',{@go_next, Seg});
 
+bPos = [width-paddingFig-bSize(1) paddingFig*1.5];
+S.pb = uicontrol('style','push',...
+    'units','pix',...
+    'position',[bPos(1) bPos(2)-bSize(2) bSize(1) bSize(2)],...
+    'fontsize',12,...
+    'string','Save >',...
+    'callback',{@go_save, Seg});
 
 
 axis equal;
@@ -376,17 +402,99 @@ end
 end
 
 function [] = go_next(varargin)
+global S;
 global dataIdx;
 global dataSize;
+global curSubIdx;
+global curSubBeginIdx;
+
+global bWidth;
+global topPanelHeight;
+global bottomPaneHeight;
+global paddingFig;
+global fSize;
+
+if dataIdx >= dataSize 
+    return
+end
+
+sprintf('curSubIdx:%d, curSubBeginIdx:%d, sum:%d', curSubIdx, curSubBeginIdx, (curSubBeginIdx+curSubIdx-1))
+if curSubIdx < 3
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0.8 0.8 0.8]);
+    curSubIdx = curSubIdx + 1;
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0 0 0]);
+elseif curSubIdx < dataSize
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0.8 0.8 0.8]);
+    curSubBeginIdx = curSubBeginIdx + 1;
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0 0 0]);
+    
+    
+    for i=1:length(S.axSubPanel{i})
+        set(S.axSubPanel{i}, 'Visible', 'off');        
+    end
+    
+    
+    for i=1:3
+        set(S.axSubPanel{i+curSubBeginIdx-1}, 'Visible', 'on');    
+        set(S.axSubPanel{i+curSubBeginIdx-1}, ...
+            'position',[bWidth+50+paddingFig+(i-1)*(topPanelHeight+paddingFig) paddingFig*2+bottomPaneHeight+fSize(2) topPanelHeight-paddingFig/2 topPanelHeight-paddingFig/2]);
+    end
+    
+%      S.axSub(ii) = axes('parent', S.axSubPanel{1} , 'units','pixels',...
+%       'position',[5 5 topPanelHeight-paddingFig/2-10 topPanelHeight-paddingFig/2-10]);
+%     set(S.axSub(ii), 'Visible', 'off');
+    
+end
 
 if dataIdx < dataSize
     dataIdx = dataIdx+1;
     updateFigure();
 end
+
+
+
 end
 
+
 function [] = go_prev(varargin)
+
+global S;
 global dataIdx;
+global curSubIdx;
+global curSubBeginIdx
+
+global bWidth;
+global topPanelHeight;
+global bottomPaneHeight;
+global paddingFig;
+global fSize;
+
+if dataIdx <= 1
+    return
+end
+
+sprintf('curSubIdx:%d, curSubBeginIdx:%d, sum:%d', curSubIdx, curSubBeginIdx, (curSubBeginIdx+curSubIdx-1))
+if curSubIdx > 1
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0.8 0.8 0.8]);
+    curSubIdx = curSubIdx - 1;
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0 0 0]);
+elseif curSubBeginIdx > 1
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0.8 0.8 0.8]);
+    curSubBeginIdx = curSubBeginIdx - 1;
+    set(S.axSubPanel{curSubBeginIdx+curSubIdx-1}, 'highlightColor', [0 0 0]);
+    
+    for i=1:length(S.axSubPanel{i})
+        set(S.axSubPanel{i}, 'Visible', 'off');        
+    end
+    
+    for i=1:3
+        set(S.axSubPanel{i+curSubBeginIdx-1}, 'Visible', 'on');    
+        set(S.axSubPanel{i+curSubBeginIdx-1}, ...
+            'position',[bWidth+50+paddingFig+(i-1)*(topPanelHeight+paddingFig) paddingFig*2+bottomPaneHeight+fSize(2) topPanelHeight-paddingFig/2 topPanelHeight-paddingFig/2]);
+    end
+end
+
+
 
 
 if dataIdx > 1
@@ -397,12 +505,13 @@ end
 
 function [] = initFigure()
     global dataIdx;
+    global dataSize;
     global plyData;
     global segData;
     global S;
     global dataRange;
     
-    for i=1:4
+    for i=1:dataSize
         V2 = plyData.v{i};%coloredCloud(1:3, :);
         C2 = plyData.c{i};%coloredCloud(4:6, :);
         SV2 = segData{i}.SegVertex;

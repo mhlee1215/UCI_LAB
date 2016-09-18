@@ -88,8 +88,8 @@ for i=1:length(fileList)
 end
 [dataSet, poseSet] = loadEFDataset( dataRoot, data_set);
 % [dataSetSmall, ~] = loadEFDatasetBuffer( dataRoot, data_set, 10);
-dataSetSmall = loadUniformSampling(dataSet, 10);
-dataSetSampled2 = loadUniformSampling(dataSet, 20);
+% dataSetSmall = loadUniformSampling(dataSet, 10);
+% dataSetSampled2 = loadUniformSampling(dataSet, 20);
 %
 
 
@@ -131,7 +131,7 @@ V = curData.v;
 C = curData.c;
 N = curData.n;
 
-[R,t,X,S,a,pk,T,TAssigned, TXQ, vis] = joint_align(V, N, C, 10, 5);
+[R,t,X,S,a,pk,T,TAssigned, TXQ, vis] = joint_align(V, N, C, 10, 2);
 
 % TV = cellfun(@(V,R_iter,t_iter) bsxfun(@plus,R_iter*V,t_iter),V,T(:,1,end),T(:,2,end),'uniformoutput',false);
 % TVb = cellfun(@(V,R_iter,t_iter) bsxfun(@plus,R_iter*V,t_iter),data.vb,T(:,1,end),T(:,2,end),'uniformoutput',false);

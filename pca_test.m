@@ -7,7 +7,7 @@ X = mean(Vertices,2);
 Q = cov(Vertices');
 figure; scatter3(Vertices(1,:), Vertices(2,:), Vertices(3,:));
 hold on;
-h1 = plot_gaussian_ellipsoid(X, Q, mean(mean(Q))*10 );
+h1 = plot_gaussian_ellipsoid(X, [1 0 0 ; 0 1 0 ; 0 0 1], mean(mean(Q))*10 );
 set(h1,'facealpha',0.2);
 axis equal;
 

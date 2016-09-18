@@ -12,7 +12,8 @@ end
 
 if type == 2
     if ~isfield(params, 'GMM_color')
-        GMM_color = bsxfun(@plus, rand(params.K, 3)./2, [0.3 0.3 0.3]);
+%         GMM_color = bsxfun(@plus, rand(params.K, 3)./2, [0.3 0.3 0.3]);
+        GMM_color = distinguishable_colors(params.K, [0 0 0]);
     else
         GMM_color = params.GMM_color;
     end
@@ -65,13 +66,13 @@ maxNumIter = size(T, 3);
         if type == 1
 %         hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize.*1.5,[0 0 0],'filled'), TV, clrmap, marker, markerSize, 'UniformOutput', false);
             hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,clrmap,'filled'), TV, clrmap, marker, markerSize, 'UniformOutput', false);
-            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 8, 'k', 'filled');
+            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 20, 'k', 'filled');
 %         hg2 = cellfun(@(TV,clrmap,marker,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,clrmap,marker), TV, clrmap, marker, markerSize, 'UniformOutput', false);
 %         legend(strIdx{:});
         elseif type == 2
             Assigned = params.Assigned(:,iter+1);
             hg2 = cellfun(@(TV,Assigned,markerSize) scatter3(TV(1,:),TV(2,:),TV(3,:),markerSize,GMM_color(Assigned,:),'filled'), TV, Assigned, markerSize(1:length(TV)), 'UniformOutput', false);
-            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 8, 'k', 'filled');
+            scatter3(TXQ{1, iter+1}(1,:)', TXQ{1, iter+1}(2,:)', TXQ{1, iter+1}(3,:)', 20, 'k', 'filled');
         end
 
         axis equal;
@@ -79,17 +80,18 @@ maxNumIter = size(T, 3);
 
         % iteration 1 locks the axes of subsequent plots
         if iter == 0
-           XLim = get(gca,'XLim');
-
-           YLim = get(gca,'YLim');
-
-           Zlim = get(gca,'ZLim');
+%            XLim = get(gca,'XLim');
+% 
+%            YLim = get(gca,'YLim');
+% 
+%            Zlim = get(gca,'ZLim');
 
     %        set(gca,'fontweight','bold','children',hg2);
              set(gca,'fontweight','bold');
         else
-    %        set(gca,'XLim',XLim,'YLim',YLim,'ZLim',Zlim,'fontweight','bold','children',hg2); 
-             set(gca,'XLim',XLim,'YLim',YLim,'ZLim',Zlim,'fontweight','bold'); 
+%            set(gca,'XLim',XLim,'YLim',YLim,'ZLim',Zlim,'fontweight','bold','children',hg2); 
+%              set(gca,'XLim',XLim,'YLim',YLim,'ZLim',Zlim,'fontweight','bold'); 
+              set(gca,'fontweight','bold');
         end
 
         if isfield(params, 'view') && ~isempty(params.view)
