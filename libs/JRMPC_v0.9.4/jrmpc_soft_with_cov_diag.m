@@ -1,4 +1,4 @@
-function [R,t,X,Q,a,pk,T, TAssign, TXQ, vis, XC, XN] = jrmpc_soft_with_normal(V,X,varargin)
+function [R,t,X,Q3,a,pk,T, TAssign, TXQ, vis, XC, XN] = jrmpc_soft_with_cov_diag(V,X,varargin)
 %         JRMPC    Joint Registration of Multiple Point Clouds.
 %            [R,t] = JRMPC(V,X) estimates the Euclidean transformation parameters R,t in order to rigidly register the views in V.
 %            V is an M x 1 cell array of views, with each view V{j} j = 1:M represented as a 3 x Nj matrix of (cartesian) coordinates.
@@ -293,8 +293,18 @@ if ~isSetQ
     maxXyZ = max(cat(2,maxXyZ{:}),[],2);
     
     Q = repmat(1./(sqe(minXyZ,maxXyZ)),K,1);
-    Q3 = repmat(1./(sqe(minXyZ,maxXyZ)),K,3);
-    Qcov = repmat({eye(3).*sqe(minXyZ,maxXyZ)}, K, 1);
+    
+    QV = 1./(sqe(minXyZ,maxXyZ));
+    QV = QV .* 100;
+    
+    Q3 = repmat(inv(eye(3).*(QV)), 1, 1, K);%repmat(1./(sqe(minXyZ,maxXyZ)),K,3);
+    Q3i = ones(K, 1).*(QV.^-(3));
+    
+    Q3N = repmat(eye(3).*100, 1, 1, K);%repmat(1./(sqe(minXyZ,maxXyZ)),K,3);
+    Q3Ni = ones(K, 1).*100;
+    
+    Q3C = repmat(eye(3).*100, 1, 1, K);%repmat(1./(sqe(minXyZ,maxXyZ)),K,3);
+    Q3Ci = ones(K, 1).*100;
 end
 
 if ~isSetMaxNumIter
@@ -391,8 +401,14 @@ pk = gpuArray(pk);
 X = gpuArray(X);
 TV = cm2cg(TV);%cellfun(@(a) gpuArray(a), TV, 'uniformoutput',false);
 Q = gpuArray(Q);
+Q3 = gpuArray(Q3);
+Q3i = gpuArray(Q3i);
 
 gg = gpuDevice();
+
+vRatio = 1/(1-normalLambda-colorLambda);
+cRatio = colorLambda/(1-normalLambda-colorLambda);
+nRatio = normalLambda/(1-normalLambda-colorLambda);
 
 progressbar2(0, 0);
 progressbar2('JRMPC registration...', 'Sub progress...');
@@ -404,39 +420,47 @@ for iter = 1:maxNumIter
     % POSTERIORS
     
     % sqe (squared differences between TV & X)
-    a = cellfun(@(TV) sqe(TV,X),TV,'uniformoutput',false);
-    a = cellfun(@(a) (1-normalLambda-colorLambda).*a,a,'uniformoutput',false);
-    
-    
-    if isSetNormal
-        an = cellfun(@(TN) sqe(TN,XN),TN,'uniformoutput',false);
-        a = cellfun(@(a, an) a+(normalLambda).*an,a, an,'uniformoutput',false);
-    end
-    
-    if isSetColor
-        ac = cellfun(@(C) sqe(C,XC),color,'uniformoutput',false);
-        a = cellfun(@(a, ac) a+(colorLambda).*ac,a, ac,'uniformoutput',false);
-    end
+    %%%%%%%%%%%%%%%%%%%%%
+%     %1D version %%%%%%
+%     a = cellfun(@(TV) sqe(TV,X),TV,'uniformoutput',false);
+%     
+%     % merge with other features
+%     a = cellfun(@(a) vRatio.*a,a,'uniformoutput',false);
+%     
+%     if isSetNormal
+%         an = cellfun(@(TN) sqe(TN,XN),TN,'uniformoutput',false);
+%         a = cellfun(@(a, an) a+nRatio.*an,a, an,'uniformoutput',false);
+%     end
+%     if isSetColor
+%         ac = cellfun(@(C) sqe(C,XC),color,'uniformoutput',false);
+%         a = cellfun(@(a, ac) a+cRatio.*ac,a, ac,'uniformoutput',false);
+%     end
+    %1D version end %%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%
 
-    %a3 = cellfun(@(TV) sqe2(TV,X),TV,'uniformoutput',false);
+    
     
     % pk*S^-1.5*exp(-.5/S^2*||.||)
-    a = cellfun(@(a) bsxfun(@times,pk.*(Q'.^1.5),exp(bsxfun(@times,-.5*Q',a))),a,'uniformoutput',false);
-    
-    %a3 = cellfun(@(a) bsxfun(@times,pk.*(Q'.^1.5),exp(bsxfun(@times,-.5*Q',a))),a,'uniformoutput',false);
-    
-%     a31 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,1)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,1)',a))),a,'uniformoutput',false);
-%     a32 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,2)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,2)',a))),a,'uniformoutput',false);
-%     a33 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,3)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,3)',a))),a,'uniformoutput',false);
-%     
-%     a3 = cellfun(@(a1, a2, a3, vis) bsxfun(@times, ((a1+a2+a3) ./ 3), vis) , a31, a32, a33, vis', 'uniformoutput',false);
 
-    % normalize
+    %3D Ver.
+    a = cellfun(@(TV) bsxfun(@times,pk.*(Q3i'.^-0.5),exp(-.5*getQSet(TV,X,Q3))),TV,'uniformoutput',false);
+    
+%     a = cellfun(@(TV) bsxfun(@times,pk.*(Q3i'.^-0.5),exp((-.5*getQSet(TV,X,Q3)))),TV,'uniformoutput',false);
+    
+%     if isSetNormal
+%         an = cellfun(@(TN) bsxfun(@times,pk.*(Q3Ni'.^-0.5),exp(-.5*getQSet(TN,XN,Q3N))),TN,'uniformoutput',false);
+%         a = cellfun(@(a, an) a+nRatio.*an,a, an,'uniformoutput',false);
+%     end
+%     if isSetColor
+%         ac = cellfun(@(C) bsxfun(@times,pk.*(Q3Ci'.^-0.5),exp(-.5*getQSet(C,XC,Q3C))),color,'uniformoutput',false);
+%         a = cellfun(@(a, ac) a+cRatio.*ac,a, ac,'uniformoutput',false);
+%     end
+
+
     a = cellfun(@(a, vis) bsxfun(@times, a, vis), a, vis','uniformoutput',false);    
+    % normalize
     a = cellfun(@(a, vis) bsxfun(@rdivide,a,sum(bsxfun(@times, a, vis),2)+beta),a, vis','uniformoutput',false);    
-    
-%     a = cellfun(@(a) bsxfun(@rdivide,a,sum(a,2)+beta),a,'uniformoutput',false);    
-
+  
     
     %Update visibility term
 %      if iter == 1
@@ -454,12 +478,11 @@ for iter = 1:maxNumIter
     progressbar2([], 2/4);
     % ------  weighted UMEYAMA ------ 
     lambda = cellfun(@(a) sum(a)',a,'uniformoutput',false); % 1 x K rows
-%     lambda2 = cellfun(@(a) mean(a)',a,'uniformoutput',false); % 1 x K rows
     
-    W = cellfun(@(V,a) bsxfun(@times,V*a,Q'),V,a,'uniformoutput',false);
+    W = cellfun(@(V,a) bsxfun(@times,V*a,(Q3i.^-3)'),V,a,'uniformoutput',false);
     
     % weights, b
-    b = cellfun(@(lambda) lambda.*Q,lambda,'uniformoutput',false);
+    b = cellfun(@(lambda) lambda.*(Q3i.^-3),lambda,'uniformoutput',false);
     
     % mean of W
     mW = cellfun(@(W) sum(W,2),W,'uniformoutput',false);
@@ -468,7 +491,7 @@ for iter = 1:maxNumIter
     mX = cellfun(@(b) X*b,b,'uniformoutput',false);
     
     % sumOfWeights
-    sumOfWeights = cellfun(@ (lambda) dot(lambda,Q),lambda,'uniformoutput',false);
+    sumOfWeights = cellfun(@ (lambda) dot(lambda,(Q3i.^-3)),lambda,'uniformoutput',false);
     
     % P
     P = cellfun(@(W,sumOfWeights,mW,mX) X*W' - mX*mW'/sumOfWeights, W,sumOfWeights,mW,mX,'uniformoutput',false);
@@ -533,17 +556,34 @@ for iter = 1:maxNumIter
     % UPDATE S
     progressbar2([], 4/4);
     % denominators for each j
-     wnormes = cellfun(@(TV,a) sum(a.*sqe(TV,X)), TV,a, 'uniformoutput',false);
-     wnormes = cellfun(@(w) (1-normalLambda-colorLambda) .* w, wnormes, 'uniformoutput', false);
+    dim = 3;
+     wnormes = cellfun(@(TV,a) sum(a.*sqe(TV,X)), TV,a, 'uniformoutput',false); %M x 2 cell, 1xK each
+     wnormes = cellfun(@(w) vRatio .* w, wnormes, 'uniformoutput', false); %M x 2 cell, 1xK each
      
+%      wnormes3D = {};
+%      for i=1:length(wnormes)
+%          www = wnormes{i};
+%          wnormes3D_sub = gpuArray(zeros(1, K, dim*dim));
+%          wnormes3D_sub(:,:,1) = www;
+%          wnormes3D_sub(:,:,5) = www;
+%          wnormes3D_sub(:,:,9) = www;
+%          wnormes3D{i} = wnormes3D_sub;
+%      end
+     
+    % wnormes3D = cellfun(@(TV,a) sum(repmat(a, 1, 1, dim*dim).*cell2mat(reshape(sqe(TV,X, true), 1, 1, dim*dim))), TV,a, 'uniformoutput',false); %M x 2 cell, 1xKx3x3 each
+     wnormes3D = cellfun(@(TV,a) sum(repmat(a, 1, 1, dim).*cell2mat(reshape(sqe(TV,X, true), 1, 1, dim))), TV,a, 'uniformoutput',false); %M x 2 cell, 1xKx3x3 each
+
+     wnormes3D = cellfun(@(w) vRatio .* w, wnormes3D, 'uniformoutput', false); %M x 2 cell, 1xK each
      if isSetNormal
-         wnormesN = cellfun(@(TN,a) sum(a.*sqe(TN,XN)), TN,a, 'uniformoutput',false);
-         wnormes = cellfun(@(w, wN) w + (normalLambda).*wN, wnormes, wnormesN, 'uniformoutput', false);
+%          wnormesN = cellfun(@(TN,a) sum(a.*sqe(TN,XN)), TN,a, 'uniformoutput',false);
+         wnormes3DN = cellfun(@(TN,a) sum(repmat(a, 1, 1, dim*dim).*cell2mat(reshape(sqe(TV,X, true), 1, 1, dim*dim))), TN,a, 'uniformoutput',false); %M x 2 cell, 1xKx3x3 each
+         wnormes3D = cellfun(@(w, wN) w + nRatio.*wN, wnormes3D, wnormes3DN, 'uniformoutput', false);
      end
 %      
      if isSetColor
-         wnormesC = cellfun(@(color,a) sum(a.*sqe(color,XC)), color,a, 'uniformoutput',false);
-         wnormes = cellfun(@(w, wC) w + (colorLambda).*wC, wnormes, wnormesC, 'uniformoutput', false);
+%          wnormes3DV = cellfun(@(color,a) sum(a.*sqe(color,XC)), color,a, 'uniformoutput',false);
+         wnormes3DC = cellfun(@(TN,a) sum(repmat(a, 1, 1, dim*dim).*cell2mat(reshape(sqe(TV,X, true), 1, 1, dim*dim))), TN,a, 'uniformoutput',false); %M x 2 cell, 1xKx3x3 each
+         wnormes3D = cellfun(@(w, wC) w + cRatio.*wC, wnormes3D, wnormes3DC, 'uniformoutput', false);
      end
      
 %     wnormes2 = cellfun(@(TV,a) mean(a.*sqe(TV,X)), TV,a, 'uniformoutput',false);
@@ -556,21 +596,34 @@ for iter = 1:maxNumIter
 % toc;
 
      Q = transpose(3*den ./ (sum(cat(3,wnormes{:}),3) + 3*den*epsilon));
-%     Q = transpose(3*den2 ./ (sum(cat(3,wnormes2{:}),3) + 3*den2*epsilon));
-    
-%     Q3 = [transpose(3*den2 ./ (sum(cat(3,wnormes31{:}),3) + 3*den2*epsilon)) ...
-%              transpose(3*den2 ./ (sum(cat(3,wnormes32{:}),3) + 3*den2*epsilon)) ...
-%                 transpose(3*den2 ./ (sum(cat(3,wnormes33{:}),3) + 3*den2*epsilon))];
-    
-%     Q3 = repmat(Q, 1, 3);
+     Q2 = transpose((sum(cat(3,wnormes{:}),3) + 3*den*epsilon)./(3*den));
+     %For 3D version
+     Q3 = gpuArray(zeros(dim, dim, K));
+     cnt = 1;
+     wnormes3D_sum = sum(cat(4,wnormes3D{:}),4);
+%      for ii=1:dim
+%          for jj=1:dim
+%             % Sigma^2
+%             Q3(ii,jj,:) = transpose((wnormes3D_sum(:,:,cnt) + 3*den*epsilon)./(3*den));
+%             cnt = cnt + 1;
+%          end
+%      end
+     for ii=1:dim
+ %        for jj=1:dim
+            % Sigma^2
+            Q3(ii,ii,:) = transpose((wnormes3D_sum(:,:,ii) + 3*den*epsilon)./(3*den));
+   %         cnt = cnt + 1;
+  %       end
+     end
+%      for ii=1:K
+%          Q3(:,:,ii) = covDimReduction(Q3(:,:,ii));
+%      end
+     [Q3i] = q3inverse(Q3);
+     
     
     % UPDATE pk
-    
-    if updatePriors
-        
+    if updatePriors        
         pk = den / ((gamma+1)*sum(den));
-%         pk = den2 / ((gamma+1)*sum(den2));
-        
     end
     
     
@@ -590,7 +643,7 @@ for iter = 1:maxNumIter
         TAssign(:, iter) = maxIdx;
         
         TXQ{1,iter} = X;
-        TXQ{2,iter} = Q;
+        TXQ{2,iter} = Q3;
     end
     
     progressbar2(iter / maxNumIter, []);
@@ -601,7 +654,7 @@ end
 % return variances
 if nargout > 3
     
-    Q = 1./Q;
+%     Q = 1./Q;
     
 end
 
@@ -615,7 +668,7 @@ end
 if ~isempty(XN)
     XN = gather(XN);
 end
-Q = gather(Q);
+% Q = gather(Q);
 a = cg2cm(a);
 %pk;
 T = cg2cm(T);
@@ -632,13 +685,68 @@ function [cg] = cm2cg(cm)
     clear cm;
 end
 
-function [ee] = sqe(Y, X)% = @(Y,X) sum(bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1])).^2,3);
-%     X1 = permute(X, [3 2 1]);
-%     Y1 = permute(Y, [2 3 1]);
+function qSet = getQSet(TV, X, Q3, Q3i2)
+    qSet = gpuArray(zeros(size(TV, 2), size(X, 2)));
+    for i=1:size(X, 2)
+        qSet(:,i) = getQ(TV, X(:,i), Q3(:,:,i));
+    end
+end
+
+function q = getQ(X, mu, Sigma)
+    X = bsxfun(@minus,X,mu);
+    [U,p]= chol(Sigma);
+    if p ~= 0
+       % Sigma
+       % error('ERROR: Sigma is not PD.');
+        [U,p] = chol(diag(diag(Sigma)));
+        if p~=0
+            error('ERROR: Sigma is not PD.');
+        end
+    end
+    Q = U'\X;
+    q = dot(Q,Q,1);  % quadratic term (M distance)
+end
+
+function [q3i2] = q3inverse(q3)
+    q3i2 = gpuArray(zeros(size(q3, 3), 1));
+    for i=1:size(q3, 3)
+        Sigma = q3(:,:,i);
+        [U,p]= chol(Sigma);
+        if p ~= 0
+           [U,p] = chol(diag(diag(Sigma)));
+           if p~= 0
+                error('ERROR: Sigma is not PD.');
+           end
+        end
+        q3i2(i) = prod(diag(U)).^2;
+    end    
+end
+
+function [ee] = sqe(Y, X, is3D)% = @(Y,X) sum(bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1])).^2,3);
+
      YY = gather(Y); clear Y;
      XX = gather(X); clear X;
-%      ee = sum(bsxfun(@minus,permute(YY,[2 3 1]),permute(XX,[3 2 1])).^2,3);
-     ee = pdist2(XX', YY')'.^2;
-%     ee = gpuArray(ee);
-%     ee = sum(bsxfun(@minus,Y1,X1).^2,3);
+     
+     if nargin > 2%exist('3D', 'var')
+         dimension = size(XX, 1);
+         ee = {};%zeros(size(YY, 2), size(XX, 2), dimension, dimension);
+         ee2 = {};
+         for i=1:dimension
+%             ee2{i} = pdist2(XX(i,:)', YY(i,:)')';
+            ee2{i} = (repmat(XX(i,:), size(YY(i,:),2), 1) - repmat(YY(i,:)', 1, size(XX(i, :), 2)));
+         end
+%          for i=1:dimension
+%              for j=1:dimension
+%                   ee{i,j} = ee2{i}.*ee2{j};
+%              end
+%          end
+         for i=1:dimension
+             %for j=1:dimension
+                  ee{i} = ee2{i}.*ee2{i};
+             %end
+         end
+         
+     else
+        ee = pdist2(XX', YY')'.^2;    
+     end
 end

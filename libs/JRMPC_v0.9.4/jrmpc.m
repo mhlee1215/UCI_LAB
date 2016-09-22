@@ -1,4 +1,4 @@
-function [R,t,X,Q,a,pk,T, TAssign, TXQ, vis, XC, XN] = jrmpc_soft_with_normal(V,X,varargin)
+function [R,t,X,Q,a,pk,T] = jrmpc(V,X,varargin)
 %         JRMPC    Joint Registration of Multiple Point Clouds.
 %            [R,t] = JRMPC(V,X) estimates the Euclidean transformation parameters R,t in order to rigidly register the views in V.
 %            V is an M x 1 cell array of views, with each view V{j} j = 1:M represented as a 3 x Nj matrix of (cartesian) coordinates.
@@ -76,8 +76,7 @@ function [R,t,X,Q,a,pk,T, TAssign, TXQ, vis, XC, XN] = jrmpc_soft_with_normal(V,
 %
 %            $Revision: 0.9.4   $  $DATE: 24/05/2015 13:45 PM $
 
-% sqe = @(Y,X) pdist2(X', Y')'.^2;% sum(bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1])).^2,3);
-% sqe2 = @(Y,X) bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1]));
+sqe = @(Y,X) sum(bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1])).^2,3);
 
 % ======================================================================== %
 %                           C H E C K S                                    %
@@ -112,19 +111,7 @@ isSetQ = 0;
 isSetMaxNumIter = 0;
 isSetInitialPriorsOrGamma = 0;
 isSetEpsilon = 0;
-isSetEpsilonST = 0;
 isSetUpdatePriors = 0;
-isSetVis = 0;
-isSetUpdateTR = 0;
-isSetUpdateVis = 0;
-isSetCovReduce = 0;
-isSetNormal = 0;
-isSetNormalLambda = 0;
-isSetColor = 0;
-isSetColorLambda = 0;
-
-XC = [];
-XN = [];
 
 for i=1:2:numel(varargin)
     if ~isSetR && strcmpi(varargin{i},'r')
@@ -151,7 +138,7 @@ for i=1:2:numel(varargin)
                 
         isSetQ = 1;
         Q = 1./Q;
-        Q3 = repmat(Q, 1, 3);
+        
     elseif ~isSetMaxNumIter && strcmpi(varargin{i},'maxnumiter')
         
         maxNumIter = varargin{i+1};
@@ -164,35 +151,11 @@ for i=1:2:numel(varargin)
                 
         isSetEpsilon = 1;
         
-    elseif ~isSetEpsilonST && strcmpi(varargin{i},'epsilonST')
-        
-        epsilonST = varargin{i+1};
-                
-        isSetEpsilonST = 1;    
-        
     elseif ~isSetUpdatePriors && strcmpi(varargin{i},'updatepriors')
         
         updatePriors = varargin{i+1}; % don use the flag,it will affect subsequent parse
                 
         isSetUpdatePriors = 1;
-        
-    elseif ~isSetUpdateTR && strcmpi(varargin{i}, 'updateTR')
-        
-        updateTR = varargin{i+1};
-        
-        isSetUpdateTR = 1;
-       
-    elseif ~isSetUpdateVis && strcmpi(varargin{i}, 'updateVis')
-        
-        updateVis = varargin{i+1};
-        
-        isSetUpdateVis = 1;
-        
-    elseif ~isSetCovReduce && strcmpi(varargin{i}, 'CovReduce')
-        
-        CovReduce = varargin{i+1};
-        
-        isSetCovReduce = 1;
         
     elseif ~isSetInitialPriorsOrGamma && strcmpi(varargin{i},'gamma')
         
@@ -217,23 +180,6 @@ for i=1:2:numel(varargin)
         
         isSetInitialPriorsOrGamma = 1;
         
-    elseif strcmpi(varargin{i},'vis')    
-        vis = varargin{i+1};
-        isSetVis = 1;
-    elseif strcmpi(varargin{i},'normal')    
-        normal = varargin{i+1};
-        XN = zeros(3, K);
-        isSetNormal = 1;
-    elseif strcmpi(varargin{i},'normalLambda')    
-        normalLambda = varargin{i+1};
-        isSetNormalLambda = 1;
-    elseif strcmpi(varargin{i},'color')    
-        color = varargin{i+1};
-        XC = zeros(3, K);
-        isSetColor = 1;
-    elseif strcmpi(varargin{i},'colorLambda')    
-        colorLambda = varargin{i+1};
-        isSetColorLambda = 1;    
     else
         
         if isSetInitialPriorsOrGamma
@@ -245,19 +191,9 @@ for i=1:2:numel(varargin)
     end
 end
 
-
 % ======================================================================== %
 %                   I N I T I A L I Z E   D E F A U L T S                  %
 % ======================================================================== %
-
-if ~isSetVis
-    
-    vis = {};
-    for i=1:length(V)
-       vis{end+1}=ones(1, K);%./length(V);
-    end
-    
-end
 
 if ~isSetR
     
@@ -267,22 +203,12 @@ end
 
 if ~isSetT
     
-%     t = cellfun(@(V) (-mean(V,2)+mean(X,2)),V,'uniformoutput',false);
     t = cellfun(@(V) (-mean(V,2)+mean(X,2))*0,V,'uniformoutput',false);
     
 end
 
 % transformed sets based on inititial R & t (\phi(v) in the paper)
 TV = cellfun(@(V,R,t) bsxfun(@plus,R*V,t),V,R,t,'uniformoutput',false);
-
-if isSetNormal
-    TN = cellfun(@(N,R) R*N,normal,R,'uniformoutput',false);
-end
-
-[minXyZ,maxXyZ] = cellfun(@(x) deal(min(x,[],2),max(x,[],2)),[TV;X],'uniformoutput',false);
-minXyZ = min(cat(2,minXyZ{:}),[],2);    
-maxXyZ = max(cat(2,maxXyZ{:}),[],2);
-QInit = repmat(1./(sqe(minXyZ,maxXyZ)),K,1);
 
 if ~isSetQ
     
@@ -293,8 +219,7 @@ if ~isSetQ
     maxXyZ = max(cat(2,maxXyZ{:}),[],2);
     
     Q = repmat(1./(sqe(minXyZ,maxXyZ)),K,1);
-    Q3 = repmat(1./(sqe(minXyZ,maxXyZ)),K,3);
-    Qcov = repmat({eye(3).*sqe(minXyZ,maxXyZ)}, K, 1);
+
 end
 
 if ~isSetMaxNumIter
@@ -309,51 +234,10 @@ if ~isSetEpsilon
     
 end
 
-if ~isSetEpsilonST
-    
-    epsilonST = 0.05;
-    
-end
-
 if ~isSetUpdatePriors
     
     updatePriors = 0;
     
-end
-
-if ~isSetUpdateTR
-    
-    updateTR = 1;
-    
-end
-
-if ~isSetUpdateVis
-    
-    updateVis = 1;
-    
-end
-
-if ~isSetCovReduce
-    
-    CovReduce = 1;
-    
-end
-
-if ~isSetNormal
-    normal = {};
-    
-end
-
-if ~isSetNormalLambda
-    normalLambda = 0;
-end
-
-if ~isSetColor
-    color = {};
-end
-
-if ~isSetColorLambda
-    colorLambda = 0;
 end
 
 if ~isSetInitialPriorsOrGamma
@@ -371,90 +255,38 @@ end
 % if requested, allocate an empty cell in maxNumIter dimension
 if nargout > 6
     T = cell(M,2,maxNumIter);
-    TAssign = cell(M,maxNumIter);
-    TXQ = cell(2,maxNumIter);
 end
 
 % parameter h in the paper (this should be proportional to the volume that
 % encompasses all the point sets). Above, we initially translate the sets around
 % (0,0,0), and we compute accordingly the initial variances (and precisions)
 %. Thus, we compute h in a similar way.
-h = 2/mean(QInit); 
+h = 2/mean(Q); 
 
 beta = gamma/(h*(gamma+1));
-% beta = 4.1924e-04;
+
 %keyboard
 
 pk = pk'; % used as a row
 
-pk = gpuArray(pk);
-X = gpuArray(X);
-TV = cm2cg(TV);%cellfun(@(a) gpuArray(a), TV, 'uniformoutput',false);
-Q = gpuArray(Q);
 
-gg = gpuDevice();
-
-progressbar2(0, 0);
-progressbar2('JRMPC registration...', 'Sub progress...');
 for iter = 1:maxNumIter
-%     iter
-    fprintf('%d / %d (memory : %d)\n', iter, maxNumIter, gg.AvailableMemory);
     
-    progressbar2([], 1/4);
     % POSTERIORS
     
     % sqe (squared differences between TV & X)
     a = cellfun(@(TV) sqe(TV,X),TV,'uniformoutput',false);
-    a = cellfun(@(a) (1-normalLambda-colorLambda).*a,a,'uniformoutput',false);
-    
-    
-    if isSetNormal
-        an = cellfun(@(TN) sqe(TN,XN),TN,'uniformoutput',false);
-        a = cellfun(@(a, an) a+(normalLambda).*an,a, an,'uniformoutput',false);
-    end
-    
-    if isSetColor
-        ac = cellfun(@(C) sqe(C,XC),color,'uniformoutput',false);
-        a = cellfun(@(a, ac) a+(colorLambda).*ac,a, ac,'uniformoutput',false);
-    end
-
-    %a3 = cellfun(@(TV) sqe2(TV,X),TV,'uniformoutput',false);
     
     % pk*S^-1.5*exp(-.5/S^2*||.||)
     a = cellfun(@(a) bsxfun(@times,pk.*(Q'.^1.5),exp(bsxfun(@times,-.5*Q',a))),a,'uniformoutput',false);
     
-    %a3 = cellfun(@(a) bsxfun(@times,pk.*(Q'.^1.5),exp(bsxfun(@times,-.5*Q',a))),a,'uniformoutput',false);
-    
-%     a31 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,1)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,1)',a))),a,'uniformoutput',false);
-%     a32 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,2)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,2)',a))),a,'uniformoutput',false);
-%     a33 = cellfun(@(a) bsxfun(@times,pk.*(Q3(:,3)'.^1.5),exp(bsxfun(@times,-.5*Q3(:,3)',a))),a,'uniformoutput',false);
-%     
-%     a3 = cellfun(@(a1, a2, a3, vis) bsxfun(@times, ((a1+a2+a3) ./ 3), vis) , a31, a32, a33, vis', 'uniformoutput',false);
-
     % normalize
-    a = cellfun(@(a, vis) bsxfun(@times, a, vis), a, vis','uniformoutput',false);    
-    a = cellfun(@(a, vis) bsxfun(@rdivide,a,sum(bsxfun(@times, a, vis),2)+beta),a, vis','uniformoutput',false);    
-    
-%     a = cellfun(@(a) bsxfun(@rdivide,a,sum(a,2)+beta),a,'uniformoutput',false);    
-
-    
-    %Update visibility term
-%      if iter == 1
-    if updateVis %&& false
-%         epsilonST = 0.05;
-        ajk = cellfun(@(a) sum(a), a, 'uniformoutput', false);
-        ajkMat = cell2mat(cg2cm(ajk));
-
-        [ st ] = genUniformDist( ajkMat, epsilonST );
-        vis = genVisFromPeriod(st, length(vis), K, epsilonST);
-    end
-%      end
-    
-
-    progressbar2([], 2/4);
+    a = cellfun(@(a) bsxfun(@rdivide,a,sum(a,2)+beta),a,'uniformoutput',false);    
+   
+   
     % ------  weighted UMEYAMA ------ 
+    
     lambda = cellfun(@(a) sum(a)',a,'uniformoutput',false); % 1 x K rows
-%     lambda2 = cellfun(@(a) mean(a)',a,'uniformoutput',false); % 1 x K rows
     
     W = cellfun(@(V,a) bsxfun(@times,V*a,Q'),V,a,'uniformoutput',false);
     
@@ -477,101 +309,11 @@ for iter = 1:maxNumIter
     % SVD
     [uu,~,vv] = cellfun(@svd,P,'uniformoutput',false);
 
-    
-    if updateTR% && false
-    
-        % compute R and check reflection
-        R2 = cellfun(@(uu,vv) uu*diag([1 1 det(uu*vv)])*vv',uu,vv,'uniformoutput',false);
-
-        % solve for t
-        t2 = cellfun(@(mW,mX,R,sumOfWeights) (mX-R*mW)/sumOfWeights,mW,mX,R,sumOfWeights,'uniformoutput',false);
-        
-        R2 = cg2cm(R2);
-        t2 = cg2cm(t2);
-        
-        [R, t] = cellfun(@(R2, t2) fcn_supressConstraint(R2, t2),R2, t2,'uniformoutput',false);
-    end
-    
-    
-    
-    
-    % transformed sets
-    TV = cellfun(@(V,R,t) bsxfun(@plus,R*V,t),V,R,t,'uniformoutput',false);
-    
-    if isSetNormal
-        TN = cellfun(@(N,R) R*N, normal,R,'uniformoutput',false);
-    end
-    
-%     if isSetColor
-%         
-%     end
-    
-    
-    % UPDATE X
-    progressbar2([], 3/4);
-    lambda = cg2cm(lambda);
-    den = sum(cell2mat(lambda'),2)'; % den is used for S's update as well
-%     den2 = sum(cell2mat(lambda2'),2)'; % den is used for S's update as well
-
-    X = cellfun(@(TV,a) TV*a,TV,a,'uniformoutput',false);  
-    X = sum(cat(3,X{:}),3);
-    X = bsxfun(@rdivide,X,den);
-
-    if isSetNormal
-        XN = cellfun(@(TN,a) TN*a,TN,a,'uniformoutput',false);
-        XN = sum(cat(3,XN{:}),3);
-        XN = bsxfun(@rdivide,XN,den);
-    end
-    
-    if isSetColor
-        XC = cellfun(@(color,a) color*a,color,a,'uniformoutput',false);
-        XC = sum(cat(3,XC{:}),3);
-        XC = bsxfun(@rdivide,XC,den);
-    end
-
-
-    % UPDATE S
-    progressbar2([], 4/4);
-    % denominators for each j
-     wnormes = cellfun(@(TV,a) sum(a.*sqe(TV,X)), TV,a, 'uniformoutput',false);
-     wnormes = cellfun(@(w) (1-normalLambda-colorLambda) .* w, wnormes, 'uniformoutput', false);
-     
-     if isSetNormal
-         wnormesN = cellfun(@(TN,a) sum(a.*sqe(TN,XN)), TN,a, 'uniformoutput',false);
-         wnormes = cellfun(@(w, wN) w + (normalLambda).*wN, wnormes, wnormesN, 'uniformoutput', false);
-     end
-%      
-     if isSetColor
-         wnormesC = cellfun(@(color,a) sum(a.*sqe(color,XC)), color,a, 'uniformoutput',false);
-         wnormes = cellfun(@(w, wC) w + (colorLambda).*wC, wnormes, wnormesC, 'uniformoutput', false);
-     end
-     
-%     wnormes2 = cellfun(@(TV,a) mean(a.*sqe(TV,X)), TV,a, 'uniformoutput',false);
-%     wnormes2 = sum(cell2mat(wnormes2'),2)';
-
-% tic;
-%     wnormes31 = cellfun(@(TV,a) mean(a.*sqe(TV(1,:),X(1,:))), TV,a, 'uniformoutput',false);
-%     wnormes32 = cellfun(@(TV,a) mean(a.*sqe(TV(2,:),X(2,:))), TV,a, 'uniformoutput',false);
-%     wnormes33 = cellfun(@(TV,a) mean(a.*sqe(TV(3,:),X(3,:))), TV,a, 'uniformoutput',false);
-% toc;
-
-     Q = transpose(3*den ./ (sum(cat(3,wnormes{:}),3) + 3*den*epsilon));
-%     Q = transpose(3*den2 ./ (sum(cat(3,wnormes2{:}),3) + 3*den2*epsilon));
-    
-%     Q3 = [transpose(3*den2 ./ (sum(cat(3,wnormes31{:}),3) + 3*den2*epsilon)) ...
-%              transpose(3*den2 ./ (sum(cat(3,wnormes32{:}),3) + 3*den2*epsilon)) ...
-%                 transpose(3*den2 ./ (sum(cat(3,wnormes33{:}),3) + 3*den2*epsilon))];
-    
-%     Q3 = repmat(Q, 1, 3);
-    
-    % UPDATE pk
-    
-    if updatePriors
-        
-        pk = den / ((gamma+1)*sum(den));
-%         pk = den2 / ((gamma+1)*sum(den2));
-        
-    end
+    % compute R and check reflection
+%     R = cellfun(@(uu,vv) uu*diag([1 1 det(uu*vv)])*vv',uu,vv,'uniformoutput',false);
+%     
+%     % solve for t
+%     t = cellfun(@(mW,mX,R,sumOfWeights) (mX-R*mW)/sumOfWeights,mW,mX,R,sumOfWeights,'uniformoutput',false);
     
     
     % populate T
@@ -579,21 +321,40 @@ for iter = 1:maxNumIter
         T(:,1,iter) = R;
         
         T(:,2,iter) = t;
-        
-        maxIdx = cell(length(a),1);
-
-        for ii=1:length(a)
-            [m, i] = max(a{ii}');
-            maxIdx{ii} = i;
-        end
-        
-        TAssign(:, iter) = maxIdx;
-        
-        TXQ{1,iter} = X;
-        TXQ{2,iter} = Q;
     end
     
-    progressbar2(iter / maxNumIter, []);
+    
+    % transformed sets
+    TV = cellfun(@(V,R,t) bsxfun(@plus,R*V,t),V,R,t,'uniformoutput',false);
+    
+    
+    % UPDATE X
+
+    den = sum(cell2mat(lambda'),2)'; % den is used for S's update as well
+
+    X = cellfun(@(TV,a) TV*a,TV,a,'uniformoutput',false);
+    
+    X = sum(cat(3,X{:}),3);
+    
+    X = bsxfun(@rdivide,X,den);
+    
+    
+    % UPDATE S
+    
+    % denominators for each j
+    wnormes = cellfun(@(TV,a) sum(a.*sqe(TV,X)), TV,a, 'uniformoutput',false);
+    
+    
+    Q = transpose(3*den ./ (sum(cat(3,wnormes{:}),3) + 3*den*epsilon));
+    
+     disp(sprintf('mean of Q: %f', mean(1./Q)));
+    % UPDATE pk
+    
+    if updatePriors
+        
+        pk = den / ((gamma+1)*sum(den));
+        
+    end
     
 end
 
@@ -605,40 +366,5 @@ if nargout > 3
     
 end
 
-%R,t,X,Q,a,pk,T
-R = cg2cm(R);
-t = cg2cm(t);
-X = gather(X);
-if ~isempty(XC)
-    XC = gather(XC);
-end
-if ~isempty(XN)
-    XN = gather(XN);
-end
-Q = gather(Q);
-a = cg2cm(a);
-%pk;
-T = cg2cm(T);
 
-end
 
-function [cm] = cg2cm(cg)
-    cm = cellfun(@(a) gather(a), cg, 'uniformoutput',false);
-    clear cg;
-end
-
-function [cg] = cm2cg(cm)
-    cg = cellfun(@(a) gpuArray(a), cm, 'uniformoutput',false);
-    clear cm;
-end
-
-function [ee] = sqe(Y, X)% = @(Y,X) sum(bsxfun(@minus,permute(Y,[2 3 1]),permute(X,[3 2 1])).^2,3);
-%     X1 = permute(X, [3 2 1]);
-%     Y1 = permute(Y, [2 3 1]);
-     YY = gather(Y); clear Y;
-     XX = gather(X); clear X;
-%      ee = sum(bsxfun(@minus,permute(YY,[2 3 1]),permute(XX,[3 2 1])).^2,3);
-     ee = pdist2(XX', YY')'.^2;
-%     ee = gpuArray(ee);
-%     ee = sum(bsxfun(@minus,Y1,X1).^2,3);
-end

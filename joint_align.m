@@ -1,4 +1,4 @@
-function [R,t,X,S,a,pk,T,TAssigned, TXQ, vis, XC, XN] = joint_align( V,N,C, maxNumIter, clusterDensity )
+function [R,t,X,S,a,pk,T,TAssigned, TXQ, vis, XC, XN, Xin] = joint_align( V,N,C, maxNumIter, clusterDensity )
 %JOINT_ALIGN Summary of this function goes here
 %   Detailed explanation goes here
 
