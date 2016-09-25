@@ -31,7 +31,7 @@ function [ vertices_sub, index, color_sub, normal_sub, pDensity ] = uniformSubSa
     kdtree = vl_kdtreebuild(vertices_sub) ;
     [index, distance] = vl_kdtreequery(kdtree, vertices_sub, vertices', 'MaxComparisons', 55) ;
     
-    if exist('colors', 'var')
+    if exist('colors', 'var') && ~isempty(colors)
         sRMean = accumarray(qVertices, colors(:,1), [], @mean);
         sGMean = accumarray(qVertices, colors(:,2), [], @mean);
         sBMean = accumarray(qVertices, colors(:,3), [], @mean);
@@ -43,7 +43,7 @@ function [ vertices_sub, index, color_sub, normal_sub, pDensity ] = uniformSubSa
         color_sub = [sRMean(validIdx), sGMean(validIdx), sBMean(validIdx)]';
     end
     
-    if exist('normals', 'var')
+    if exist('normals', 'var') && ~isempty(normals)
         sN1Mean = accumarray(qVertices, normals(:,1), [], @mean);
         sN2Mean = accumarray(qVertices, normals(:,2), [], @mean);
         sN3Mean = accumarray(qVertices, normals(:,3), [], @mean);

@@ -4,6 +4,10 @@ function [] = fcn_saveUniformSizeModel( Rv, Rc, Rn, dataRoot, fileName, density 
 % fileName = 'merged_ref_big';
 % density = 50;
 
+if nargin < 6
+    density = 0;
+end
+
 if iscell(Rv)
     Rv2 = [];
     Rc2 = [];

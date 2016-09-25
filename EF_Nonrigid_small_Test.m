@@ -12,23 +12,44 @@ addpath(genpath('./libs'));
 
 dataRoot = '/home/mhlee/data_from_odroid/complete';
 data_set = {};
-% data_set{1} = 'LAB_1-2016-07-18_13_14.klg_cvt.ply';
+data_set{end+1} = 'LAB_1-2016-07-18_13_14.klg_cvt.ply';
 % data_set{2} = 'LAB_1-2016-07-29_12_28.klg_cvt.ply';
-data_set{1} = 'LAB_2-2016-07-18_13_23.klg_cvt.ply';
-data_set{2} = 'LAB_2-2016-07-18_13_25.klg_cvt.ply';
-data_set{3} = 'LAB_2-2016-07-18_13_26.klg_cvt.ply';
+data_set{end+1} = 'LAB_2-2016-07-18_13_23.klg_cvt.ply';
+% data_set{end+1} = 'LAB_2-2016-07-18_13_25.klg_cvt.ply';
+% data_set{3} = 'LAB_2-2016-07-18_13_26.klg_cvt.ply';
 [dataSet, poseSet] = loadEFDataset( dataRoot, data_set);
-dataSetSmall = loadUniformSampling(dataSet, 20);
+dataSetSmall = loadUniformSampling(dataSet, 40);
 
 colors = distinguishable_colors(30, [0 0 0]);
 idx1 = 1;
 idx2 = 2;
 idx3 = 3;
 
+pts = dataSetSmall{1}.v';
+normal = dataSetSmall{1}.n';
+cc = dataSetSmall{1}.c';
+% p.addParameter('minNormalStd',0.05);
+% p.addParameter('minGroupSize',200);
+
+% [XXX YYY] = meshgrid(1:1000, 1:1000);
+% pts = [XXX(:)./100 YYY(:)./100 zeros(size(XXX(:)))];
+% normal = ones(size(pts));
+[pts_small, iIndex, cs, ns] = sampling(pts, 'type', 'octree', 'binCapacity', 15, 'color', cc, 'normal', normal, 'minNormalStd',0.13, 'minGroupSize',0);
+% [pts_small, iIndex, cs, ns] = sampling(pts, 'type', 'uniform', 'density', 10, 'color', cc, 'normal', normal);
+pclviewer([pts_small cs]')
+OT = OcTree(pts, 'binCapacity', 500);
+p=testParser(pts);
+sampleRange = [-2.8 -2.2 ;-2.5 -1.5 ; -10 10];
+
 % load('/home/mhlee/data_from_odroid/cache/LAB_1-2016-07-18_13_14.mat');
 featureNew = dataSetSmall{idx1};
-% validIdx = 1:length(featureNew.v(:,1));%find((featureNew.v(:,1) > 0));% .* (featureNew.v(:,2) > 0) .* (featureNew.v(:,3) > 0));
-validIdx1 = find((featureNew.v(2,:) > -3).*(featureNew.v(2,:) < -1));% .* (featureNew.v(1,:) < 3));% .* (featureNew.v(2,:) > 1));% .* (featureNew.v(2,:) < 2.5));% .* (featureNew.v(1,:) > 0));
+validMark = ones(1, size(featureNew.v,2));
+for i=1:size(sampleRange,1)
+    validMark = validMark.* (featureNew.v(i,:) > sampleRange(i,1));
+    validMark = validMark.* (featureNew.v(i,:) < sampleRange(i,2));
+end
+validIdx1 = find(validMark);
+
 iValidIdx1 = zeros(length(featureNew.v(1,:)), 1);
 iValidIdx1(validIdx1) = 1:length(validIdx1);
 % v = featureNew.v';%(validIdx, :);
@@ -43,18 +64,16 @@ YB.vs = YB.v(:, bigSubIdx1);
 YB.cs = YB.c(:, bigSubIdx1);
 YB.ns = YB.n(:, bigSubIdx1);
 
-% 
-% manupulateIdx1 = find((Y(:,1) < 1));% .* (config.scene(1,:) > 0) .* (config.scene(1,:) > 0));
-% % config.model2 = config.model;
-% Y(manupulateIdx1, 3) = Y(manupulateIdx1, 3)+0.3;% + 0.1.*rand(size(v))-0.1;
-% config.model = config.model2;
 
-% pclviewer([config.model2 repmat([1 0 0], size(config.scene, 1), 1) ; config.model repmat([1 1 0], size(config.model, 1), 1)]');
-
-% load('/home/mhlee/data_from_odroid/cache/LAB_1-2016-07-29_12_28.mat');
 featureNew = dataSetSmall{idx2};
 
-validIdx2 = find((featureNew.v(2,:) > -3).*(featureNew.v(2,:) < -1));% .* (featureNew.v(1,:) < 3));
+validMark = ones(1, size(featureNew.v,2));
+for i=1:size(sampleRange,1)
+    validMark = validMark.* (featureNew.v(i,:) > sampleRange(i,1));
+    validMark = validMark.* (featureNew.v(i,:) < sampleRange(i,2));
+end
+validIdx2 = find(validMark);
+
 iValidIdx2 = zeros(length(featureNew.v(1,:)), 1);
 iValidIdx2(validIdx2) = 1:length(validIdx2);
 X = featureNew.v(:, validIdx2)';% + 0.1.*rand(size(v))-0.1;
@@ -71,7 +90,12 @@ XB.ns = XB.n(:, bigSubIdx2);
 
 featureNew = dataSetSmall{idx3};
 % validIdx = 1:length(featureNew.v(:,1));%find((featureNew.v(:,1) > 0));% .* (featureNew.v(:,2) > 0) .* (featureNew.v(:,3) > 0));
-validIdx3 = find((featureNew.v(2,:) > -3).*(featureNew.v(2,:) < -1));% .* (featureNew.v(1,:) < 3));% .* (featureNew.v(2,:) > 1));% .* (featureNew.v(2,:) < 2.5));% .* (featureNew.v(1,:) > 0));
+validMark = ones(1, size(featureNew.v,2));
+for i=1:size(sampleRange,1)
+    validMark = validMark.* (featureNew.v(i,:) > sampleRange(i,1));
+    validMark = validMark.* (featureNew.v(i,:) < sampleRange(i,2));
+end
+validIdx3 = find(validMark);
 iValidIdx3 = zeros(length(featureNew.v(1,:)), 1);
 iValidIdx3(validIdx3) = 1:length(validIdx3);
 % v = featureNew.v';%(validIdx, :);
@@ -94,7 +118,7 @@ V = {Y' ; X' ; Z'};
 N = {Yn' ; Xn' ; Zn'};
 C = {Yc' ; Xc' ; Zc'};
 
-clusterDensity = 10;
+clusterDensity = 15;
 va = [];
 for i = 1:length(V)
     va = [va V{i}];
@@ -110,13 +134,13 @@ v_one = v_one(:, find(density > 0));
 %100 20 generates good results
 % [R,t,XX,S,a,pk,T,TAssigned, TXQ, vis, XXc, XXn, Xin] = joint_align(V,N,C, 100, 10);
 
-[R,t,XX,S,a,pk,T,TAssigned, TXQ, vis, ~, ~] = jrmpc_soft_with_normal(V,Xin, ...
-    'maxNumIter',100,'gamma',0.1, 'updatepriors', 0, 'updateVis', 0, 'updateTR', 1);
+% [R,t,XX,S,a,pk,T,TAssigned, TXQ, vis, ~, ~] = jrmpc_soft_with_normal(V,Xin, ...
+%     'maxNumIter',100,'gamma',0.1, 'updatepriors', 0, 'updateVis', 0, 'updateTR', 1);
 
-TV = cellfun(@(V,R_iter,t_iter) bsxfun(@plus,R_iter*V,t_iter),V,T(:,1,end),T(:,2,end),'uniformoutput',false);
 
-[R,t,XX,S,a,pk,T,TAssigned, TXQ, vis, ~, ~] = jrmpc_3d(TV,Xin, ...
-    'maxNumIter',30,'gamma',0.1, 'updatepriors', 0, 'updateVis', 0, 'updateTR', 1, 'epsilon', 0.001);
+[R,t,XX,S,a,pk,T,TAssigned, TXQ, vis, XXc, XXn] = jrmpc_3d(V,Xin, ...
+    'maxNumIter',80,'gamma',0.1, 'updatepriors', 0, 'updateVis', 0, 'updateTR', 0, 'epsilon', 0.00001,...
+     'normal', N, 'normalLambda', .0, 'color', C, 'colorLambda', .0);
 
 % V_one = {v_one};
 % [R,t,XX,S2,a2,pk2,T2,TAssigned2, TXQ2, vis2, ~, ~] = jrmpc_soft_with_cov2d(V,Xin, ...
@@ -137,13 +161,13 @@ axis equal;
 
 % scatter3(v_one(1,:), v_one(2,:), v_one(3,:), 8, colors(1,:), 'filled');
 % scatter3(XX2(1,:), XX2(2,:), XX2(3,:), 15, 'm', 'filled');
-scatter3(XX(1,:), XX(2,:), XX(3,:), 15, 'm', 'filled');
+scatter3(XX(1,:), XX(2,:), XX(3,:), 15, 'k', 'filled');
 % scatter3(XX3(1,:), XX3(2,:), XX3(3,:), 15, 'm', 'filled');
-% scatter3(Xin(1,:), Xin(2,:), Xin(3,:), 15, 'g', 'filled');
+scatter3(Xin(1,:), Xin(2,:), Xin(3,:), 15, 'c', 'filled');
 axis equal;
 
 for i=1:1:size(XX, 2)
-    vw = 1;
+    vw = 2;
     if size(S, 2) == 1
         h1 = plot_gaussian_ellipsoid(XX(:,i), eye(3).*S(i), vw);
 %         h1 = plot_gaussian_ellipsoid(XX3(:,i), eye(3).*S2(i), vw);
@@ -159,7 +183,7 @@ axis equal;
 params.type = 2;
 params.Assigned = TAssigned;
 params.K = length(TXQ{1, 1, end});
-params.interval = 1;
+params.interval = 5;
 % params.marker = marker;
 % params.markerSize = markerSize;
 % params.clrmap = clrmap;
@@ -221,19 +245,20 @@ opt.sigma2 = 0;
 
 % data.X = XX';
 % data.Y = Y;
-% data.Xc = XXc';
-% data.Yc = Yc;
-% data.Xn = XXn';
-% data.Yn = Yn;
-% data.cLambda = 1;
-% data.nLambda = 1;
-% opt.auxData = data;
-opt.auxData = [];
+data.Xc = XXc';
+data.Yc = Yc;
+data.Xn = XXn';
+data.Yn = Yn;
+data.cLambda = 0.3;
+data.nLambda = 0.3;
+opt.auxData = data;
+% opt.auxData = [];
 
-scale = 1/max(max(S(1,1,:)), max(max(S(2,2,:)), max(S(3,3,:))));
+scale = 30.*1/max(max(S(1,1,:)), max(max(S(2,2,:)), max(S(3,3,:))));
 
-sLambda = 0.4;
+sLambda = 0;
 opt.S = S.*scale.*sLambda + repmat(eye(3).*(1-sLambda), 1, 1, size(S, 3));
+% opt.S = repmat(eye(3), 1, 1, K);
 close all;
 tic;
 [TransformY, ~]=cpd_register(XX',Y, opt);
@@ -277,9 +302,9 @@ diffZ = (fmZ - Z)';
 YBmove = diffY(:, iValidIdx1(Yi));
 XBmove = diffX(:, iValidIdx2(Xi));
 ZBmove = diffZ(:, iValidIdx3(Zi));
-% pclviewer([YB.vs+YBmove XB.vs+XBmove ZB.vs+ZBmove; repmat([1 0 0]', 1, size(YB.vs, 2)) repmat([1 1 0]', 1, size(XB.vs, 2)) repmat([0.5 1 0.5]', 1, size(ZB.vs, 2))]);
-% pclviewer([YB.vs+YBmove XB.vs+XBmove ZB.vs+ZBmove; YB.cs XB.cs ZB.cs]);
-% pclviewer([YB.vs XB.vs ZB.vs; YB.cs XB.cs ZB.cs]);
+pclviewer([YB.vs+YBmove XB.vs+XBmove ZB.vs+ZBmove; repmat([1 0 0]', 1, size(YB.vs, 2)) repmat([1 1 0]', 1, size(XB.vs, 2)) repmat([0.5 1 0.5]', 1, size(ZB.vs, 2))]);
+pclviewer([YB.vs+YBmove XB.vs+XBmove ZB.vs+ZBmove; YB.cs XB.cs ZB.cs]);
+pclviewer([YB.vs XB.vs ZB.vs; YB.cs XB.cs ZB.cs]);
 % 
 % 
 % pclviewer([YB.vs+YBmove XB.vs+XBmove; repmat([1 0 0]', 1, size(YB.vs, 2)) repmat([1 1 0]', 1, size(XB.vs, 2))]);
